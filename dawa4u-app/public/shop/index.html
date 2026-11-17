@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-app="shop">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dawa4u · Medicines in 15 minutes</title>
+<meta name="description" content="Order medicines from a pharmacy near you and get them delivered in 10 to 15 minutes.">
+<meta name="theme-color" content="#0b7a53">
+<link rel="icon" href="../common/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Hind:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../common/style.css">
+<style>
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0}
+.pinbox{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.9rem}
+.pinbox input{width:96px;padding:6px 10px}
+nav{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px}
+nav a{white-space:nowrap;padding:6px 12px;border-radius:10px;text-decoration:none;color:var(--muted);font-weight:600}
+nav a.on{background:var(--leaf-soft);color:var(--leaf)}
+nav .count{display:inline-block;min-width:20px;text-align:center;background:var(--leaf);color:var(--leaf-ink);border-radius:999px;font-size:.75rem;padding:0 6px;margin-left:4px}
+main.wrap{padding:20px 16px 64px;display:grid;gap:20px}
+.hero{display:grid;gap:14px;background:var(--leaf);color:var(--leaf-ink);border-radius:20px;padding:22px}
+.hero .hi{font-family:var(--display);font-size:1.15rem;font-weight:600;opacity:.9}
+.hero .btn{background:var(--leaf-ink);color:var(--leaf);border-color:var(--leaf-ink)}
+.hero .btn.ghost{background:transparent;color:var(--leaf-ink)}
+.search{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.chip{white-space:nowrap;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 13px;cursor:pointer;font-weight:500}
+.chip.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.products{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.prod{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;gap:6px;grid-template-rows:auto auto 1fr auto}
+.tile{height:72px;border-radius:10px;background:var(--leaf-soft);color:var(--leaf);display:grid;place-items:center;position:relative}
+.tile svg{width:38px;height:38px}
+.tile .pill{position:absolute;top:6px;left:6px}
+.prod .name{font-weight:600;line-height:1.25}
+.price{font-weight:600}
+.price s{color:var(--muted);font-weight:400;margin-left:4px}
+.step{display:inline-flex;align-items:center;border:1px solid var(--leaf);border-radius:10px;overflow:hidden}
+.step button{border:0;background:var(--leaf);color:var(--leaf-ink);width:32px;height:32px;font-size:1.1rem;cursor:pointer}
+.step span{min-width:30px;text-align:center;font-weight:600}
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:28px 16px;text-align:center;display:grid;gap:10px;justify-items:center}
+.drop img{max-width:100%;max-height:260px;border-radius:10px}
+.steps{display:grid;margin:0;padding:0;list-style:none}
+.steps li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;padding:7px 0;color:var(--muted);position:relative}
+.steps li::before{content:"";width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:var(--card);margin:3px 4px;z-index:1}
+.steps li:not(:last-child)::after{content:"";position:absolute;left:10px;top:20px;bottom:-8px;width:2px;background:var(--line)}
+.steps li.done{color:var(--ink)}
+.steps li.done::before{background:var(--leaf);border-color:var(--leaf)}
+.steps li.done:not(:last-child)::after{background:var(--leaf)}
+.steps li.now{font-weight:600;color:var(--ink)}
+.steps li.now::before{border-color:var(--sun);background:var(--sun)}
+footer{border-top:1px solid var(--line);padding:20px 0 32px;color:var(--muted);font-size:.875rem}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="top">
+    <a class="brand" href="#home"><i>+</i><span>dawa<b>4u</b></span></a>
+    <form class="pinbox" id="pinform"><label for="pin">Deliver to PIN</label><input id="pin" type="text" inputmode="numeric" maxlength="6" placeholder="452001" autocomplete="postal-code"></form>
+  </div>
+  <nav id="nav" aria-label="Sections"></nav>
+</div></header>
+<main class="wrap" id="app"></main>
+<footer><div class="wrap row spread"><span>dawa4u · medicines from your local pharmacy, delivered by a local rider</span><span>Prices in ₹, inclusive of taxes</span></div></footer>
+<script src="../common/config.js"></script>
+<script src="../common/ui.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
