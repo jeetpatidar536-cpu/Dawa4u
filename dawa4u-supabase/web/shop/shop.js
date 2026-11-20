@@ -4,6 +4,7 @@
 // =====================================================================
 import { auth, me, shop, rupee, esc, when, toast, CATS, RX_RULES, PAYS, payLabel, STATUS, LOGO, ICON, readImages } from '../common/api.js';
 import { C } from '../common/customer.js';
+import { locationPicker, trackingMap } from '../common/map.js';
 
 const $ = s => document.querySelector(s);
 const SUPPORT = (window.D4U_CONFIG || {}).SUPPORT_PHONE || '';
@@ -181,6 +182,7 @@ const pages = {
       <div style="display:flex;flex-wrap:wrap;gap:24px">${items}</div></div>`;
     return `<div class="wrap stack" style="padding-top:40px;gap:24px">${head}
       <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+        ${o.drop_lat != null || o.pickup_lat != null ? `<div class="map" style="flex:3 1 520px"><div id="tmap" data-order="${o.id}" style="position:absolute;inset:0"></div></div>` : `
         <div class="map" style="flex:3 1 520px">
           <div class="road" style="left:-5%;top:36%;width:110%;height:26px;transform:rotate(-6deg)"></div>
           <div class="road" style="left:52%;top:-10%;width:26px;height:120%;transform:rotate(6deg)"></div>
@@ -190,9 +192,10 @@ const pages = {
           ${t.delivered || !o.rider_id ? '' : `<div class="dot" style="left:${16 + k * 54}%;top:${26 + k * 44}%;width:48px;height:48px;background:var(--gold)">${ICON.bike}</div>`}
           <span class="card s13 b" style="position:absolute;left:16px;bottom:16px;padding:8px 14px;border-radius:12px">${esc(o.pharmacy_name)} → ${esc(o.address_label)}</span>
         </div>
+        `}
         <div class="card lift stack" style="flex:2 1 360px;padding:28px;gap:22px">
           <div class="row" style="justify-content:space-between">
-            <div class="stack" style="gap:2px"><span class="s14 mute b">${t.delivered ? 'Order' : 'Arriving in'}</span><span class="clock" style="${t.delivered ? 'color:var(--em);font-size:40px' : ''}">${t.delivered ? 'Delivered' : t.late ? 'Any minute' : t.clock}</span></div>
+            <div class="stack" style="gap:2px"><span class="s14 mute b">${t.delivered ? 'Order' : 'Arriving in'}</span><span class="clock" style="${t.delivered ? 'color:var(--em);font-size:40px' : ''}">${t.delivered ? 'Delivered' : gpsEta[o.id] && o.status === 'picked' && gpsEta[o.id].min != null ? '~' + gpsEta[o.id].min + ' min' : t.late ? 'Any minute' : t.clock}</span>${!t.delivered && gpsEta[o.id] && gpsEta[o.id].km != null ? `<span class="s13 mute">Rider is ${gpsEta[o.id].km < 1 ? Math.round(gpsEta[o.id].km * 1000) + ' m' : gpsEta[o.id].km.toFixed(1) + ' km'} ${o.status === 'picked' ? 'from you' : 'from the pharmacy'}</span>` : ''}</div>
             <div class="ring" style="background:conic-gradient(${t.delivered ? 'var(--em)' : 'var(--amber)'} 0 ${t.delivered ? 100 : t.pct}%, #FEF3C7 0 100%)"><div><span style="font-size:18px;font-weight:800;color:var(--ink)">15</span>min</div></div>
           </div>
           <div>${t.steps.map((s, i) => `<div class="tl"><div class="rail"><span class="d" style="background:${s.state === 'done' ? 'var(--em)' : '#fff'};border-color:${s.state === 'next' ? '#D1D5DB' : 'var(--em)'}"></span><span class="l" style="background:${i === 3 ? 'transparent' : s.state === 'done' ? 'var(--em)' : 'var(--line)'}"></span></div>
@@ -245,6 +248,8 @@ const pages = {
     return `<div class="wrap stack" style="padding-top:40px;gap:24px;max-width:860px">${pageHead('Delivery address', 'Choose where your medicines should go.')}
       ${C.user ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">${C.addresses.map(a => `<label class="opt ${C.cart.addressId === a.id ? 'on' : ''}"><input type="radio" name="addr" value="${a.id}" ${C.cart.addressId === a.id ? 'checked' : ''}><span class="stack" style="gap:3px"><span class="b s15">${esc(a.label)}</span><span class="s13 mute">${esc(a.line)} · ${esc(a.pin)}</span></span></label>`).join('')}</div>
       <div class="card stack" style="padding:24px"><span class="serif" style="font-size:20px">Add a new address</span>
+        <div id="addrmap" style="height:320px;border-radius:16px;overflow:hidden;background:var(--sand)"></div>
+        <span class="s13 mute" id="pinhint">Search, click the map or use your location to drop a pin at your door.</span>
         <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:12px"><label class="field">Label<input id="alabel" placeholder="Home, Office…"></label><label class="field">Full address<input id="aline" placeholder="House no., street, area, landmark"></label><label class="field">PIN code<input id="apin" inputmode="numeric" maxlength="6"></label></div>
         <div class="row"><button class="btn" id="addaddr">Save address</button>${C.count() ? '<a href="#/cart" class="btn ghost">Back to cart</a>' : ''}</div></div>`
       : `${pinBox()}<a class="btn ghost" href="#/login?next=%23%2Flocation" style="align-self:flex-start">Log in to save addresses</a>`}</div>`;
@@ -278,6 +283,29 @@ const pages = {
   }
 };
 
+const gpsEta = {};
+let live = null, picked = null;
+function mountMaps(r) {
+  const slot = document.getElementById('tmap');
+  if (!slot && live) { live.ctl.then(c => c.stop()); live = null; }
+  if (slot) {
+    const o = C.orders.find(x => x.id === slot.dataset.order);
+    if (live && live.id === o.id) { slot.replaceWith(live.node); live.ctl.then(c => { c.update(o); c.map.invalidateSize(); }); }
+    else { if (live) live.ctl.then(c => c.stop()); live = { id: o.id, node: slot, ctl: trackingMap(slot, o, { onEta: (min, km) => { gpsEta[o.id] = { min, km }; } }) }; live.ctl.catch(() => {}); }
+  }
+  const pick = document.getElementById('addrmap');
+  if (pick && !pick.dataset.ready) {
+    pick.dataset.ready = '1'; picked = null;
+    locationPicker(pick, { onChange: p => {
+      picked = { lat: p.lat, lng: p.lng };
+      const l = document.getElementById('aline'), pn = document.getElementById('apin');
+      if (l && (!l.value || l.dataset.auto) && p.line) { l.value = p.line; l.dataset.auto = '1'; }
+      if (pn && (!pn.value || pn.dataset.auto) && /^[1-9]\d{5}$/.test(p.pin || '')) { pn.value = p.pin; pn.dataset.auto = '1'; }
+      const h = document.getElementById('pinhint'); if (h) h.textContent = '📍 Pin set — the rider will come here';
+    } }).catch(() => { pick.innerHTML = '<div class="s13 mute" style="padding:14px">Map could not load. You can still type your address.</div>'; });
+  }
+}
+
 // ------------------------------------------------ router
 let pending = [], ticker, tickets = [];
 const otpCache = {};
@@ -285,9 +313,11 @@ function render() {
   const r = route(); header();
   const v = $('#view');
   if (!C.ready) { v.innerHTML = '<div class="spin"></div>'; return; }
+  if (live && live.node.parentNode) live.node.remove();
   v.innerHTML = (pages[r.name] || pages.home)(r);
+  mountMaps(r);
   clearInterval(ticker);
-  if (r.name === 'track') ticker = setInterval(() => { const y = scrollY; if (!document.activeElement.matches('input,textarea')) { v.innerHTML = pages.track(route()); scrollTo(0, y); } }, 1000);
+  if (r.name === 'track') ticker = setInterval(() => { const y = scrollY; if (!document.activeElement.matches('input,textarea')) { if (live && live.node.parentNode) live.node.remove(); v.innerHTML = pages.track(route()); mountMaps(route()); scrollTo(0, y); } }, 1000);
   if (r.name === 'home' && v.querySelector('[data-clock]')) ticker = setInterval(() => v.querySelectorAll('[data-clock]').forEach(s => { const o = C.orders.find(x => x.id === s.dataset.clock); if (o) s.textContent = C.track(o).clock; }), 1000);
   if (r.name === 'track' && r.id && C.user && !otpCache[r.id]) shop.otp(r.id).then(x => { if (x) { otpCache[r.id] = x; const el = $('#otp'); if (el) el.textContent = x; } }).catch(() => {});
   if (r.name === 'help' && C.user) shop.tickets().then(t => { if (JSON.stringify(t) !== JSON.stringify(tickets)) { tickets = t; render(); } }).catch(() => {});
@@ -330,7 +360,7 @@ document.addEventListener('click', async e => {
       if (code.length < 6) return toast('Enter all 6 digits');
       return busy(el, async () => { await auth.verifyOtp(q.get('phone'), code); await C.setUser(await auth.user()); toast('Logged in'); location.replace(q.get('next') || '#/'); }).catch(() => {});
     }
-    case 'addaddr': return busy(el, async () => { await C.addAddress($('#alabel').value.trim(), $('#aline').value.trim(), $('#apin').value.trim()); toast('Address saved'); }).catch(() => {});
+    case 'addaddr': return busy(el, async () => { await C.addAddress($('#alabel').value.trim(), $('#aline').value.trim(), $('#apin').value.trim(), picked && picked.lat, picked && picked.lng); toast('Address saved'); render(); }).catch(() => {});
     case 'joinbtn': return busy(el, async () => {
       const name = $('#j1').value.trim(), phone = $('#j2').value.trim();
       if (!name || !/^[6-9]\d{9}$/.test(phone)) throw new Error('Enter your name and a valid mobile number');

@@ -4,6 +4,7 @@
 // =====================================================================
 import { auth, rider as api, rupee, esc, when, toast, ICON, LOGO, live, ding, installable, errText, store } from '../common/api.js';
 
+import { makeMap, pinIcon, shareLocation, km } from '../common/map.js';
 const $ = s => document.querySelector(s);
 installable();
 const T = {
@@ -24,7 +25,28 @@ const T = {
 };
 const S = { user: null, r: null, cur: [], avail: [], trips: [], tab: 'home', lang: store.get('riderLang', 'en'), seen: new Set(), phone: '' };
 const t = k => (T[S.lang] || T.en)[k] || T.en[k];
-const maps = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+const maps = (q, lat, lng) => lat != null ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=two-wheeler` : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+let gpsStop = null, myPos = null, gpsErr = '';
+// Share GPS while online (customers see the rider only while carrying their order)
+function syncGps() {
+  const want = S.r && S.r.status === 'active' && (S.r.online || S.cur.length);
+  if (want && !gpsStop) {
+    gpsStop = shareLocation(e => { gpsErr = e.message; const b = document.getElementById('gpswarn'); if (b) { b.textContent = '⚠ ' + gpsErr; b.style.display = 'block'; } });
+    try { navigator.geolocation.watchPosition(p => { myPos = { lat: p.coords.latitude, lng: p.coords.longitude }; }, () => {}, { enableHighAccuracy: true }); } catch {}
+  }
+  if (!want && gpsStop) { gpsStop(); gpsStop = null; }
+}
+async function jobMap(o) {
+  const el = document.getElementById('jobmap'); if (!el) return;
+  try {
+    const { L, map } = await makeMap(el, { zoom: 14 });
+    const pts = [];
+    if (o.pickup_lat != null) { L.marker([o.pickup_lat, o.pickup_lng], { icon: pinIcon(L, 'pharmacy') }).addTo(map); pts.push([o.pickup_lat, o.pickup_lng]); }
+    if (o.drop_lat != null) { L.marker([o.drop_lat, o.drop_lng], { icon: pinIcon(L, 'home') }).addTo(map); pts.push([o.drop_lat, o.drop_lng]); }
+    if (myPos) { L.marker([myPos.lat, myPos.lng], { icon: pinIcon(L, 'rider') }).addTo(map); pts.push([myPos.lat, myPos.lng]); }
+    if (pts.length > 1) map.fitBounds(pts, { padding: [30, 30], maxZoom: 16 }); else if (pts.length) map.setView(pts[0], 15); else el.style.display = 'none';
+  } catch { el.style.display = 'none'; }
+}
 
 async function boot() {
   $('#app').innerHTML = '<div class="spin"></div>';
@@ -81,10 +103,11 @@ const jobCard = o => {
   const step = o.status === 'picked' ? 'deliver' : o.status === 'packed' ? 'pickup' : 'wait';
   return `<div class="card stack" style="padding:18px;gap:14px;border:2px solid var(--em)">
     <div class="row between"><span class="b s15">${o.id}</span><span class="pill ${o.pay_method === 'cod' ? 'warn' : ''}">${o.pay_method === 'cod' ? t('collect') + ' ' + rupee(o.total) : t('paid')}</span></div>
+    ${o.pickup_lat != null || o.drop_lat != null ? '<div id="jobmap" style="height:200px;border-radius:12px;overflow:hidden;background:var(--sand)"></div>' : ''}
     <div class="leg ${o.status === 'picked' ? 'done' : ''}"><span class="s11 b mute">${t('pickupAt')}</span><b>${esc(o.pharmacy_name)}</b><span class="s13 mute">${esc(o.pharmacy_address)}</span>
-      ${o.status !== 'picked' ? `<a class="btn sm ghost" href="${maps(o.pharmacy_name + ' ' + o.pharmacy_address)}" target="_blank" rel="noopener">${ICON.pin} ${t('map')}</a>` : ''}</div>
+      ${o.status !== 'picked' ? `<a class="btn sm ghost" href="${maps(o.pharmacy_name + ' ' + o.pharmacy_address, o.pickup_lat, o.pickup_lng)}" target="_blank" rel="noopener">${ICON.pin} ${t('map')}</a>` : ''}</div>
     <div class="leg"><span class="s11 b mute">${t('dropAt')}</span><b>${esc(o.customer_name || 'Customer')} · ${esc(o.address_label)}</b><span class="s13 mute">${esc(o.address_line)} · ${esc(o.pin)}</span>
-      <div class="row"><a class="btn sm ghost" href="tel:+${esc(o.customer_phone)}">${ICON.phone} ${t('call')}</a><a class="btn sm ghost" href="${maps(o.address_line + ' ' + o.pin)}" target="_blank" rel="noopener">${ICON.pin} ${t('map')}</a></div></div>
+      <div class="row"><a class="btn sm ghost" href="tel:+${esc(o.customer_phone)}">${ICON.phone} ${t('call')}</a><a class="btn sm ghost" href="${maps(o.address_line + ' ' + o.pin, o.drop_lat, o.drop_lng)}" target="_blank" rel="noopener">${ICON.pin} ${t('map')}</a></div></div>
     <details><summary class="s13 b">${o.order_items.reduce((a, i) => a + i.qty, 0)} ${t('items')}</summary><div class="s13" style="margin-top:6px">${o.order_items.map(i => `${i.qty} × ${esc(i.name)}`).join('<br>')}</div></details>
     ${step === 'wait' ? `<button class="btn lg" disabled>${t('waitPack')}</button>` : step === 'pickup' ? `<button class="btn lg" data-do="pickup" data-id="${o.id}">${t('pickup')}</button>`
       : `<span class="s13 b">${t('otpAsk')}</span><input id="otp" inputmode="numeric" maxlength="4" class="inp" style="font-size:28px;letter-spacing:.5em;text-align:center;font-weight:800"><button class="btn lg" data-do="deliver" data-id="${o.id}" data-cod="${o.pay_method === 'cod' ? o.total : ''}">${t('deliver')}</button>`}
@@ -94,15 +117,18 @@ const jobCard = o => {
 function render() {
   if (S.tab === 'home') {
     frame(`<div class="stack" style="padding:16px">
+      <div id="gpswarn" class="pill warn" style="display:${gpsErr ? 'block' : 'none'};white-space:normal;font-size:13px;padding:10px 12px">⚠ ${esc(gpsErr)}</div>
       <div class="card row" style="padding:16px"><div class="stack grow" style="gap:2px"><b class="s15">${S.r.online ? t('online') : t('offline')}</b><span class="s12 mute">${esc(S.r.city)}</span></div><button class="switch ${S.r.online ? 'on' : ''}" id="online" aria-label="Online"></button></div>
       ${S.cur.length ? `<span class="b">${t('current')}</span>${S.cur.map(jobCard).join('')}` : ''}
       ${!S.cur.length ? (S.r.online ? `<span class="b">${t('available')}</span>${S.avail.map(o => `<div class="card stack" style="padding:16px;gap:8px">
           <div class="row between"><b>${esc(o.pharmacy_name)}</b><span class="pill gold">+ ${rupee(o.rider_pay)}</span></div>
-          <span class="s13 mute">→ ${esc(o.address_line)} · ${esc(o.pin)}</span>
+          <span class="s13 mute">→ ${esc(o.address_line)} · ${esc(o.pin)}${myPos && o.pickup_lat != null ? ' · pharmacy ' + km(myPos, { lat: o.pickup_lat, lng: o.pickup_lng }).toFixed(1) + ' km away' : ''}</span>
           <span class="s12">${o.order_items.reduce((a, i) => a + i.qty, 0)} ${t('items')} · ${o.pay_method === 'cod' ? t('collect') + ' ' + rupee(o.total) : t('paid')} · ${o.status === 'packed' ? '✓ packed' : t('waitPack')}</span>
           <button class="btn" data-do="accept" data-id="${o.id}">${t('accept')}</button></div>`).join('') || `<div class="card empty">${t('none')}</div>`}`
         : `<div class="card empty">${t('goOnline')}</div>`) : ''}
     </div>`);
+    syncGps();
+    if (S.cur[0]) jobMap(S.cur[0]);
   } else if (S.tab === 'earn') {
     frame('<div class="spin"></div>');
     const wk = new Date(Date.now() - 6 * 864e5); wk.setHours(0, 0, 0, 0);

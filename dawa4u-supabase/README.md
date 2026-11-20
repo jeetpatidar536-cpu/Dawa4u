@@ -100,7 +100,17 @@ npm run rider:android
 ```
 App IDs are `in.dawa4u.app` and `in.dawa4u.rider` (change them in `mobile/*/capacitor.config.json` before your first upload — they can't be changed later). For Play Store review, give Google a test phone number + OTP from step 1.4.
 
-## 6. Billing software (Marg ERP and others)
+## 6. Maps (live rider tracking)
+
+Maps use **Leaflet + OpenStreetMap** — free, no API key. Run `supabase/migrations/20261120100000_maps.sql` once (after the main migration).
+- Customers drop a pin at their door when adding an address ("Use my location", search, or tap the map).
+- Pharmacies set their shop pin in **Settings**.
+- The rider app shares the phone's GPS every ~10 seconds while the rider is online. A customer sees the rider only while that rider is carrying their order; once the parcel is picked up the ETA is worked out from the rider's real position.
+- Admin → Overview shows a live map of riders, pharmacies and live orders.
+- For heavy traffic, switch map tiles to a provider with a free tier (MapTiler, Carto): set `MAP_TILES` and `MAP_ATTRIBUTION` in `web/common/config.js`. Address search uses OpenStreetMap Nominatim, which is for light use only.
+- Rider GPS in a browser pauses when the phone screen is off; the native app build (`mobile/`) with a background-location plugin is the fix for full-day tracking.
+
+## 7. Billing software (Marg ERP and others)
 
 - **Upload a file:** Pharmacy → Stock & prices → *Upload stock file (CSV)*. Marg: Reports → Stock → Stock Status → export.
 - **Automatic sync:** Pharmacy → POS link shows the pharmacy's secret key and the API for their software dealer:
@@ -128,7 +138,7 @@ App IDs are `in.dawa4u.app` and `in.dawa4u.rider` (change them in `mobile/*/capa
 
 ## Not built yet (good next steps)
 
-- **Live GPS of the rider.** The tracking map shows progress from the order's status and the 15-minute timer; it does not use the rider's real location yet. Adding it = rider app sends location every ~10 s to a `rider_locations` table + a real map (Google Maps / Mapbox key).
+- Background GPS when the rider's screen is off (needs the native app + a background-location plugin).
 - Push notifications when the app is closed (Firebase Cloud Messaging) — today alerts ring while the app/dashboard is open.
 - Automatic refunds through the Razorpay API (today admin refunds in Razorpay and taps *Mark refunded*).
 - Product photos (cards show the first letter of the medicine).
