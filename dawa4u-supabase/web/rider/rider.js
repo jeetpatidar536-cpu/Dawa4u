@@ -73,7 +73,7 @@ async function refresh(first) {
 }
 
 function frame(body, title) {
-  $('#app').innerHTML = `<header class="rtop"><span class="logo" style="color:var(--ivory);font-size:19px">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span class="s12" style="opacity:.8;margin-left:6px;letter-spacing:0">Rider</span></span>
+  $('#app').innerHTML = `<header class="rtop"><span class="logo" style="color:var(--ink);font-size:19px">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span class="s12" style="opacity:.8;margin-left:6px;letter-spacing:0">Rider</span></span>
     ${title || ''}</header><main class="rmain">${body}</main>
     ${S.r && S.r.status === 'active' ? `<nav class="rtabs">${[['home', ICON.orders, t('home')], ['earn', ICON.rupee, t('earn')], ['me', ICON.user, t('me')]].map(([id, ic, l]) => `<button class="${S.tab === id ? 'on' : ''}" data-tab="${id}">${ic}<span>${l}</span></button>`).join('')}</nav>` : ''}`;
 }
@@ -81,7 +81,7 @@ function loginScreen() {
   frame(`<div class="stack" style="padding:28px 20px;gap:18px">
     <div class="row" style="justify-content:flex-end"><button class="pill grey" data-lang="${S.lang === 'en' ? 'hi' : 'en'}">${S.lang === 'en' ? 'हिंदी' : 'English'}</button></div>
     ${!S.phone ? `<h1 class="serif" style="margin:0;font-size:26px;font-weight:600">${t('login')}</h1>
-      <label class="field">${t('mobile')}<div class="row" style="gap:8px"><span class="b" style="padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff">+91</span><input id="ph" type="tel" inputmode="numeric" maxlength="10" class="inp" style="flex:1;font-size:18px"></div></label>
+      <label class="field">${t('mobile')}<div class="row" style="gap:8px"><span class="b" style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card)">+91</span><input id="ph" type="tel" inputmode="numeric" maxlength="10" class="inp" style="flex:1;font-size:18px"></div></label>
       <button class="btn lg" id="send">${t('send')}</button>`
     : `<h1 class="serif" style="margin:0;font-size:26px;font-weight:600">${t('code')}</h1><span class="mute">+91 ${esc(S.phone)} · <a href="#" id="chg">✎</a></span>
       <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" class="inp" style="font-size:28px;letter-spacing:.4em;text-align:center;font-weight:800">
@@ -95,13 +95,13 @@ function registerScreen() {
     <button class="btn lg" id="reg">${t('register')}</button><button class="s13 mute" id="out">${t('logout')}</button></div>`);
 }
 function waitScreen() {
-  frame(`<div class="stack" style="padding:32px 20px;align-items:flex-start"><span style="color:var(--em)">${ICON.clock}</span><h1 class="serif" style="margin:0;font-size:24px;font-weight:600">${t('pending')}</h1><span class="mute" style="line-height:1.6">${t('pendingTxt')}</span>
+  frame(`<div class="stack" style="padding:32px 20px;align-items:flex-start"><span style="color:var(--em-text)">${ICON.clock}</span><h1 class="serif" style="margin:0;font-size:24px;font-weight:600">${t('pending')}</h1><span class="mute" style="line-height:1.6">${t('pendingTxt')}</span>
     <button class="btn" id="again">${t('check')}</button><button class="s13 mute" id="out">${t('logout')}</button></div>`);
 }
 
 const jobCard = o => {
   const step = o.status === 'picked' ? 'deliver' : o.status === 'packed' ? 'pickup' : 'wait';
-  return `<div class="card stack" style="padding:18px;gap:14px;border:2px solid var(--em)">
+  return `<div class="card stack" style="padding:18px;gap:14px;border:2px solid var(--em-text)">
     <div class="row between"><span class="b s15">${o.id}</span><span class="pill ${o.pay_method === 'cod' ? 'warn' : ''}">${o.pay_method === 'cod' ? t('collect') + ' ' + rupee(o.total) : t('paid')}</span></div>
     ${o.pickup_lat != null || o.drop_lat != null ? '<div id="jobmap" style="height:200px;border-radius:12px;overflow:hidden;background:var(--sand)"></div>' : ''}
     <div class="leg ${o.status === 'picked' ? 'done' : ''}"><span class="s11 b mute">${t('pickupAt')}</span><b>${esc(o.pharmacy_name)}</b><span class="s13 mute">${esc(o.pharmacy_address)}</span>

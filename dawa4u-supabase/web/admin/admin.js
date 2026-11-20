@@ -40,7 +40,7 @@ const pages = {
         ${s.riders_pending ? `<a href="#/riders" class="pill warn" style="font-size:13px;padding:8px 14px">${s.riders_pending} rider waiting for approval</a>` : ''}
         ${s.refunds_due ? `<a href="#/refunds" class="pill bad" style="font-size:13px;padding:8px 14px">${s.refunds_due} refund to send</a>` : ''}
         ${s.rx_waiting ? `<span class="pill gold" style="font-size:13px;padding:8px 14px">${s.rx_waiting} prescriptions with pharmacists</span>` : ''}</div>` : ''}
-      <div class="card pad stack"><div class="row between"><span class="serif s18">Live map</span><span class="s12 mute">Riders (gold) · pharmacies (green) · live order drops (black) · updates every 15 s</span></div>
+      <div class="card pad stack"><div class="row between"><span class="serif s18">Live map</span><span class="s12 mute">Riders (gold) · pharmacies (green) · live order drops (cream) · updates every 15 s</span></div>
         <div id="livemap" style="height:420px;border-radius:14px;overflow:hidden;background:var(--sand)"></div></div>
       <div class="cols">
         <div class="card pad stack"><span class="serif s18">Last 7 days</span>
@@ -123,12 +123,12 @@ const pages = {
     return `<span class="mute">People who filled "Become a partner" or "Join as a rider" on the website. Call them, then tick done.</span>
       <div class="card"><table><thead><tr><th>When</th><th>Type</th><th>Name</th><th>Phone</th><th>Detail</th><th>City</th><th>Done</th></tr></thead><tbody>
       ${rows.map(a => `<tr style="${a.handled ? 'opacity:.5' : ''}"><td class="s13">${when(a.created_at)}</td><td><span class="pill ${a.kind === 'pharmacy' ? '' : 'gold'}">${a.kind}</span></td><td><b>${esc(a.name)}</b></td><td class="s13">${esc(a.phone)}</td><td class="s13">${esc(a.detail)}</td><td class="s13">${esc(a.city)}</td>
-        <td><input type="checkbox" data-lead="${a.id}" ${a.handled ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--em)"></td></tr>`).join('') || '<tr><td colspan="7"><div class="empty">No leads yet</div></td></tr>'}</tbody></table></div>`;
+        <td><input type="checkbox" data-lead="${a.id}" ${a.handled ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--em-text)"></td></tr>`).join('') || '<tr><td colspan="7"><div class="empty">No leads yet</div></td></tr>'}</tbody></table></div>`;
   },
   async support() {
     const rows = await api.tickets();
     return `<div class="stack">${rows.map(t => `<div class="card pad stack" style="gap:8px"><div class="row between"><b>${esc(t.subject)}</b><span class="row" style="gap:8px">${t.order_id ? `<a href="#/orders/${esc(t.order_id)}" class="s13">${esc(t.order_id)}</a>` : ''}<span class="pill ${t.status === 'open' ? 'warn' : ''}">${t.status}</span><span class="s12 mute">${timeAgo(t.created_at)}</span></span></div>
-      <span>${esc(t.message)}</span>${t.reply ? `<span class="s13" style="color:var(--em)"><b>Reply:</b> ${esc(t.reply)}</span>` : `<div class="row"><input class="inp grow" data-replybox="${t.id}" placeholder="Write a reply…"><button class="btn sm" data-reply="${t.id}">Send & close</button></div>`}</div>`).join('') || '<div class="card empty">No support messages</div>'}</div>`;
+      <span>${esc(t.message)}</span>${t.reply ? `<span class="s13" style="color:var(--em-text)"><b>Reply:</b> ${esc(t.reply)}</span>` : `<div class="row"><input class="inp grow" data-replybox="${t.id}" placeholder="Write a reply…"><button class="btn sm" data-reply="${t.id}">Send & close</button></div>`}</div>`).join('') || '<div class="card empty">No support messages</div>'}</div>`;
   },
   async settings() {
     const s = await getSettings();
@@ -203,8 +203,8 @@ function productModal(p) {
     <label class="field">Name<input id="m-name" value="${esc(p.name)}"></label><label class="field">Salt / composition<input id="m-salt" value="${esc(p.salt)}"></label>
     <div class="row"><label class="field grow">Pack<input id="m-pack" value="${esc(p.pack)}" placeholder="Strip of 10 tablets"></label><label class="field" style="width:120px">MRP ₹<input id="m-mrp" type="number" min="1" value="${esc(p.mrp)}"></label></div>
     <div class="row"><label class="field grow">Category<select id="m-cat" class="inp">${CATS.map(c => `<option value="${c.id}" ${p.category === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}</select></label><label class="field grow">POS item code (Marg)<input id="m-pos" value="${esc(p.pos_code || '')}"></label></div>
-    <label class="row"><input type="checkbox" id="m-rx" ${p.rx ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--em)"> Prescription medicine (Rx)</label>
-    <label class="row"><input type="checkbox" id="m-act" ${p.active ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--em)"> Show in shop</label>
+    <label class="row"><input type="checkbox" id="m-rx" ${p.rx ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--em-text)"> Prescription medicine (Rx)</label>
+    <label class="row"><input type="checkbox" id="m-act" ${p.active ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--em-text)"> Show in shop</label>
     <div class="row"><button class="btn" id="m-save">Save</button><button class="btn ghost" id="m-close">Close</button></div></div>`;
   document.body.appendChild(m);
   $('#m-close').onclick = () => m.remove();

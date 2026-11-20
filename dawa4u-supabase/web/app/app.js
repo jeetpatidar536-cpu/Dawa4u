@@ -32,14 +32,14 @@ const tabbar = on => {
 const passCard = () => C.hasPass()
   ? `<div class="pass"><div class="stack" style="gap:4px"><span class="tag">DAWAPASS · ACTIVE</span><span class="serif" style="font-size:18px;font-weight:600">You save ${C.settings.pass_off}% on every order</span><span class="s12" style="opacity:.85">Free delivery · till ${new Date(C.profile.pass_until).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span></div></div>`
   : `<div class="pass"><div class="stack" style="gap:4px"><span class="tag">DAWAPASS</span><span class="serif" style="font-size:18px;font-weight:600">dawaPass — ${rupee(C.settings.pass_price)}/month</span><span class="s12" style="opacity:.85">15–20% off · free delivery · priority</span></div><button class="gold" data-go="#/pass">Join</button></div>`;
-const needLogin = (title, next) => `${topBar(title)}<div class="scroll"><div class="empty"><span style="color:var(--em)">${ICON.user}</span><span class="serif" style="font-size:20px">Log in to continue</span><span class="s13 mute">Use your mobile number — we will send you a code.</span><button class="btn" data-go="#/login?next=${encodeURIComponent(next)}" style="width:auto;padding:0 24px">Log in</button></div></div>`;
+const needLogin = (title, next) => `${topBar(title)}<div class="scroll"><div class="empty"><span style="color:var(--em-text)">${ICON.user}</span><span class="serif" style="font-size:20px">Log in to continue</span><span class="s13 mute">Use your mobile number — we will send you a code.</span><button class="btn" data-go="#/login?next=${encodeURIComponent(next)}" style="width:auto;padding:0 24px">Log in</button></div></div>`;
 const pinGate = () => `<div class="card stack" style="padding:18px;gap:12px"><span class="serif" style="font-size:18px;font-weight:600">Where should we deliver?</span>
   <span class="s13 mute">Enter your PIN code to see medicines from the pharmacy nearest you.</span>
   <div class="row"><input id="pinin" inputmode="numeric" maxlength="6" placeholder="6-digit PIN" style="flex:1;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:12px 14px"><button class="btn" id="setpin" style="width:auto;padding:0 20px">Go</button></div></div>`;
 const activeBanner = () => { const o = C.liveOrder(); if (!o) return ''; const t = C.track(o);
-  return `<button class="card row" data-go="#/track/${o.id}" style="padding:14px 16px;text-align:left;background:#FEF3C7;border-color:#FDE68A">
+  return `<button class="card row" data-go="#/track/${o.id}" style="padding:14px 16px;text-align:left;background:var(--warn-bg);border-color:#5A4614">
     <span style="width:40px;height:40px;border-radius:20px;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ICON.bike}</span>
-    <span class="stack" style="gap:2px;flex:1"><span class="s14 b" style="color:#92400E">${STATUS[o.status]} · ${t.late ? 'any minute' : t.clock}</span><span class="s12" style="color:#92400E">Tap to track ${o.id}</span></span><span style="color:#92400E">›</span></button>`; };
+    <span class="stack" style="gap:2px;flex:1"><span class="s14 b" style="color:var(--warn-ink)">${STATUS[o.status]} · ${t.late ? 'any minute' : t.clock}</span><span class="s12" style="color:var(--warn-ink)">Tap to track ${o.id}</span></span><span style="color:var(--warn-ink)">›</span></button>`; };
 
 // ------------------------------------------------ screens
 const screens = {
@@ -51,7 +51,7 @@ const screens = {
       <div class="hero">
         <div class="row" style="justify-content:space-between">
           <div class="stack" style="gap:2px">
-            <span class="row" style="gap:4px;font-size:18px;font-weight:800;letter-spacing:-.05em;color:var(--ivory)">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span style="font-size:12px;font-weight:600;letter-spacing:0;opacity:.9;margin-left:6px">${C.serviceable() ? '· delivering in 15 min' : ''}</span></span>
+            <span class="row" style="gap:4px;font-size:18px;font-weight:800;letter-spacing:-.05em;color:var(--ink)">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span style="font-size:12px;font-weight:600;letter-spacing:0;opacity:.9;margin-left:6px">${C.serviceable() ? '· delivering in 15 min' : ''}</span></span>
             <button data-go="#/location" style="color:#fff;font-size:16px;font-weight:700;min-height:32px;text-align:left">${a ? esc(a.label) + ' · ' + esc(a.pin) : C.pin ? 'PIN ' + esc(C.pin) : 'Choose location'} ▾</button>
           </div>
           <button class="icon-btn" data-go="#/account" aria-label="Account" style="background:rgba(255,255,255,.16);color:#fff">${ICON.user}</button>
@@ -63,8 +63,8 @@ const screens = {
         ${!C.pin ? pinGate() : !C.serviceable() ? `<div class="ok warn">We don't deliver to PIN ${esc(C.pin)} yet — we're adding pharmacies fast. <a href="#/location" class="b">Change PIN</a></div>` : ''}
         ${activeBanner()}
         <button class="card row" data-go="#/rx" style="padding:16px;text-align:left;gap:14px">
-          <span style="width:52px;height:52px;border-radius:14px;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--em);flex-shrink:0">${ICON.rx}</span>
-          <span class="stack" style="gap:3px;flex:1"><span class="b" style="font-size:15px">Order with prescription</span><span class="s12 mute" style="line-height:1.4">Upload a photo — a licensed pharmacist adds your medicines</span></span><span style="color:var(--em)">›</span></button>
+          <span style="width:52px;height:52px;border-radius:14px;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--em-text);flex-shrink:0">${ICON.rx}</span>
+          <span class="stack" style="gap:3px;flex:1"><span class="b" style="font-size:15px">Order with prescription</span><span class="s12 mute" style="line-height:1.4">Upload a photo — a licensed pharmacist adds your medicines</span></span><span style="color:var(--em-text)">›</span></button>
         ${passCard()}
         <div class="stack" style="gap:12px"><span class="serif" style="font-size:20px;font-weight:600">Shop by need</span>
           <div class="cats">${CATS.map(c => `<button class="cat" data-go="#/search?cat=${c.id}"><span>${c.mark}</span><span>${c.label}</span></button>`).join('')}</div></div>
@@ -91,9 +91,9 @@ const screens = {
     return `${topBar('Upload prescription')}
       <div class="scroll"><div class="pad stack">
         <div class="progress">${[1, 2, 3].map(i => `<span class="${i <= stage ? 'on' : ''}"></span>`).join('')}</div>
-        <div class="row s11 b mute" style="justify-content:space-between;margin-top:-10px"><span style="color:var(--em)">1 Upload</span><span style="${stage >= 2 ? 'color:var(--em)' : ''}">2 Pharmacist reads</span><span style="${stage >= 3 ? 'color:var(--em)' : ''}">3 Confirm &amp; pay</span></div>
+        <div class="row s11 b mute" style="justify-content:space-between;margin-top:-10px"><span style="color:var(--em-text)">1 Upload</span><span style="${stage >= 2 ? 'color:var(--em-text)' : ''}">2 Pharmacist reads</span><span style="${stage >= 3 ? 'color:var(--em-text)' : ''}">3 Confirm &amp; pay</span></div>
         ${r && !rej ? `<div class="card row" style="padding:16px;align-items:flex-start">
-            <span style="width:40px;height:40px;border-radius:20px;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--em);flex-shrink:0">${done ? ICON.check : ICON.clock}</span>
+            <span style="width:40px;height:40px;border-radius:20px;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--em-text);flex-shrink:0">${done ? ICON.check : ICON.clock}</span>
             <span class="stack" style="gap:4px"><span class="s14 b">${done ? 'Pharmacist added your medicines' : r.status === 'reading' ? 'A pharmacist is reading it now' : 'Waiting for a pharmacist'}</span>
             <span class="s12 mute" style="line-height:1.5">${done ? `${r.items.length} medicine${r.items.length === 1 ? '' : 's'} added to your cart.${r.pharmacist_note ? ' Note: ' + esc(r.pharmacist_note) : ''}` : 'A licensed pharmacist checks your prescription and adds the medicines to your cart. Usually about 3 minutes — keep this app open or come back.'}</span></span></div>`
         : `${rej ? `<div class="ok warn">The pharmacist could not use your last prescription: ${esc(r.pharmacist_note || 'unclear photo')}. Please upload a clearer photo.</div>` : ''}
@@ -101,7 +101,7 @@ const screens = {
             <div style="display:flex;gap:10px;overflow-x:auto">${pending.map((p, i) => `<div class="thumb" style="background-image:url(${p.preview})" aria-label="Page ${i + 1}"></div>`).join('')}
               ${pending.length < 4 ? `<label class="addpage">${ICON.plus}Add page<input type="file" accept="image/*" multiple hidden data-file></label>` : ''}</div>
             <div class="grid2"><label class="btn soft">${ICON.cam}Camera<input type="file" accept="image/*" capture="environment" hidden data-file></label><label class="btn soft">${ICON.img}Gallery<input type="file" accept="image/*" multiple hidden data-file></label></div></div>
-          <div class="stack" style="gap:8px"><span class="s13 b">A valid prescription shows</span>${RX_RULES.map(x => `<div class="row s13" style="gap:10px"><span style="color:var(--em)">${ICON.check}</span>${x}</div>`).join('')}</div>
+          <div class="stack" style="gap:8px"><span class="s13 b">A valid prescription shows</span>${RX_RULES.map(x => `<div class="row s13" style="gap:10px"><span style="color:var(--em-text)">${ICON.check}</span>${x}</div>`).join('')}</div>
           <label class="field">Note for pharmacist (optional)<textarea id="note" placeholder="e.g. Need only 10 days of medicine"></textarea></label>`}
       </div></div>
       <div class="foot">${r && !rej ? (done ? `<button class="btn" data-go="#/cart">Go to cart</button>` : `<button class="btn ghost" data-go="#/">Keep shopping while you wait</button>`)
@@ -109,7 +109,7 @@ const screens = {
   },
   cart() {
     const L = C.lines(), b = C.bill();
-    if (!L.length) return `${topBar('Cart')}<div class="scroll"><div class="empty"><span style="color:var(--em)">${ICON.cart}</span><span class="serif" style="font-size:20px">Your cart is empty</span><span class="s13 mute">Search for medicines or upload a prescription.</span><button class="btn" data-go="#/search" style="width:auto;padding:0 22px">Browse medicines</button><button class="btn ghost" data-go="#/rx" style="width:auto;padding:0 22px">Upload prescription</button></div></div>${tabbar('cart')}`;
+    if (!L.length) return `${topBar('Cart')}<div class="scroll"><div class="empty"><span style="color:var(--em-text)">${ICON.cart}</span><span class="serif" style="font-size:20px">Your cart is empty</span><span class="s13 mute">Search for medicines or upload a prescription.</span><button class="btn" data-go="#/search" style="width:auto;padding:0 22px">Browse medicines</button><button class="btn ghost" data-go="#/rx" style="width:auto;padding:0 22px">Upload prescription</button></div></div>${tabbar('cart')}`;
     const need = C.rxNeeded(), a = C.address(), rxv = C.prescriptions.find(p => p.id === C.cart.rxId && p.status === 'done');
     return `${topBar('Cart', `${C.count()} items · ${esc(C.pharmacyName || '')}`)}
       <div class="scroll"><div class="pad stack" style="gap:14px">
@@ -122,14 +122,14 @@ const screens = {
           : `<label class="pass" style="cursor:pointer"><div class="stack" style="gap:2px"><span class="s13 b">Add dawaPass · ${rupee(C.settings.pass_price)}/month</span><span class="s11" style="opacity:.8">Save ${rupee(Math.round(b.sub * C.settings.pass_off / 100) + C.settings.delivery_fee)} and free delivery on this order</span></div><input type="checkbox" id="passbox" ${C.cart.buyPass ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--gold)"></label>`}
         <div class="card stack" style="padding:14px 16px;gap:8px"><span class="serif" style="font-size:18px;font-weight:600">Bill details</span>
           <div class="billrow"><span class="mute">Item total (MRP)</span><span>${rupee(b.mrp)}</span></div>
-          ${b.saved ? `<div class="billrow"><span class="mute">Pharmacy discount</span><span style="color:var(--em);font-weight:600">− ${rupee(b.saved)}</span></div>` : ''}
-          ${b.disc ? `<div class="billrow"><span class="mute">dawaPass discount</span><span style="color:var(--em);font-weight:600">− ${rupee(b.disc)}</span></div>` : ''}
+          ${b.saved ? `<div class="billrow"><span class="mute">Pharmacy discount</span><span style="color:var(--em-text);font-weight:600">− ${rupee(b.saved)}</span></div>` : ''}
+          ${b.disc ? `<div class="billrow"><span class="mute">dawaPass discount</span><span style="color:var(--em-text);font-weight:600">− ${rupee(b.disc)}</span></div>` : ''}
           <div class="billrow"><span class="mute">Delivery fee</span><span>${b.delivery ? rupee(b.delivery) : `<s class="mute">${rupee(C.settings.delivery_fee)}</s> FREE`}</span></div>
           <div class="billrow"><span class="mute">Handling</span><span>${rupee(b.handling)}</span></div>
           ${b.passFee ? `<div class="billrow"><span class="mute">dawaPass (1 month)</span><span>${rupee(b.passFee)}</span></div>` : ''}
           <div class="hr"></div><div class="billrow xb" style="font-size:15px"><span>To pay</span><span>${rupee(b.total)}</span></div></div>
-        <button class="card row" data-go="#/location" style="padding:12px 14px;text-align:left"><span style="color:var(--em)">${ICON.pin}</span>
-          <span class="stack" style="gap:2px;flex:1">${a ? `<span class="s13 b">Deliver to ${esc(a.label)}</span><span class="s11 mute">${esc(a.line)} · ${esc(a.pin)}</span>` : `<span class="s13 b">Add delivery address</span>`}</span><span class="s13 b" style="color:var(--em)">${a ? 'Change' : 'Add'}</span></button>
+        <button class="card row" data-go="#/location" style="padding:12px 14px;text-align:left"><span style="color:var(--em-text)">${ICON.pin}</span>
+          <span class="stack" style="gap:2px;flex:1">${a ? `<span class="s13 b">Deliver to ${esc(a.label)}</span><span class="s11 mute">${esc(a.line)} · ${esc(a.pin)}</span>` : `<span class="s13 b">Add delivery address</span>`}</span><span class="s13 b" style="color:var(--em-text)">${a ? 'Change' : 'Add'}</span></button>
         <div class="stack" style="gap:8px"><span class="s13 b">Pay using</span>
           <div class="grid2">${PAYS.map(p => `<label class="opt ${C.cart.pay === p.id ? 'on' : ''}"><input type="radio" name="pay" value="${p.id}" ${C.cart.pay === p.id ? 'checked' : ''}>${p.label}</label>`).join('')}</div>
           <span class="s11 mute">Secure payments by Razorpay · UPI, cards and netbanking${C.settings.payments_test_mode ? ' · <b>test mode</b>' : ''}</span></div>
@@ -147,7 +147,7 @@ const screens = {
       ${orderCard(o)}</div></div>${o.status === 'pending_payment' ? `<div class="foot row"><button class="btn ghost" id="cancelorder" data-id="${o.id}" style="flex:1">Cancel</button><button class="btn" id="payagain" data-id="${o.id}" style="flex:2">Pay ${rupee(o.total)}</button></div>` : ''}`;
     return `<div class="scroll" style="display:flex;flex-direction:column">
       ${hasPins(o) ? `<div class="map" style="height:340px"><div id="tmap" data-order="${o.id}" style="position:absolute;inset:0"></div>
-        <button class="icon-btn" data-back="#/orders" aria-label="Back" style="position:absolute;z-index:600;left:16px;top:calc(env(safe-area-inset-top) + 16px);background:#fff">${ICON.back}</button></div>`
+        <button class="icon-btn" data-back="#/orders" aria-label="Back" style="position:absolute;z-index:600;left:16px;top:calc(env(safe-area-inset-top) + 16px);background:var(--card)">${ICON.back}</button></div>`
       : `<div class="map">
         <div class="road" style="left:-20px;top:150px;width:440px;height:22px;transform:rotate(-8deg)"></div>
         <div class="road" style="left:210px;top:-20px;width:22px;height:440px;transform:rotate(6deg)"></div>
@@ -156,19 +156,19 @@ const screens = {
         <div class="dot" style="left:52px;top:100px;width:36px;height:36px;background:var(--em);color:#fff">${ICON.plus}</div>
         <div class="dot" style="left:220px;top:252px;width:36px;height:36px;background:var(--ink)">${ICON.house}</div>
         ${t.delivered || !o.rider_id ? '' : `<div class="dot" style="left:${70 + k * 150}px;top:${130 + k * 120}px;width:40px;height:40px;background:var(--gold)">${ICON.bike}</div>`}
-        <button class="icon-btn" data-back="#/orders" aria-label="Back" style="position:absolute;left:16px;top:calc(env(safe-area-inset-top) + 16px);background:#fff">${ICON.back}</button>
+        <button class="icon-btn" data-back="#/orders" aria-label="Back" style="position:absolute;left:16px;top:calc(env(safe-area-inset-top) + 16px);background:var(--card)">${ICON.back}</button>
       </div>`}
       <div class="sheet" style="flex:1">
         <div class="row" style="justify-content:space-between">
-          <div class="stack" style="gap:2px"><span class="s13 mute b">${t.delivered ? 'Order ' + o.id : 'Arriving in'}</span><span class="clock" style="${t.delivered ? 'color:var(--em)' : ''}">${t.delivered ? 'Delivered' : gpsEta[o.id] && o.status === 'picked' && gpsEta[o.id].min != null ? '~' + gpsEta[o.id].min + ' min' : t.late ? 'Any minute' : t.clock}</span>${!t.delivered && gpsEta[o.id] && gpsEta[o.id].km != null ? `<span class="s11 mute">Rider is ${gpsEta[o.id].km < 1 ? Math.round(gpsEta[o.id].km * 1000) + ' m' : gpsEta[o.id].km.toFixed(1) + ' km'} ${o.status === 'picked' ? 'from you' : 'from the pharmacy'}</span>` : ''}</div>
+          <div class="stack" style="gap:2px"><span class="s13 mute b">${t.delivered ? 'Order ' + o.id : 'Arriving in'}</span><span class="clock" style="${t.delivered ? 'color:var(--em-text)' : ''}">${t.delivered ? 'Delivered' : gpsEta[o.id] && o.status === 'picked' && gpsEta[o.id].min != null ? '~' + gpsEta[o.id].min + ' min' : t.late ? 'Any minute' : t.clock}</span>${!t.delivered && gpsEta[o.id] && gpsEta[o.id].km != null ? `<span class="s11 mute">Rider is ${gpsEta[o.id].km < 1 ? Math.round(gpsEta[o.id].km * 1000) + ' m' : gpsEta[o.id].km.toFixed(1) + ' km'} ${o.status === 'picked' ? 'from you' : 'from the pharmacy'}</span>` : ''}</div>
           <div class="ring" style="background:conic-gradient(${t.delivered ? 'var(--em)' : 'var(--amber)'} 0 ${t.delivered ? 100 : t.pct}%, #FEF3C7 0 100%)"><div><span style="font-size:15px;font-weight:800;color:var(--ink)">15</span>min</div></div>
         </div>
         <div>${t.steps.map((s, i) => `<div class="tl"><div class="rail"><span class="d" style="background:${s.state === 'done' ? 'var(--em)' : '#fff'};border-color:${s.state === 'next' ? '#D1D5DB' : 'var(--em)'}"></span><span class="l" style="background:${i === 3 ? 'transparent' : s.state === 'done' ? 'var(--em)' : 'var(--line)'}"></span></div>
           <div class="stack" style="gap:1px;padding-bottom:12px"><span class="s13 b" style="color:${s.state === 'next' ? 'var(--mute)' : 'var(--ink)'}">${s.title}</span><span class="s11 mute">${esc(s.sub)}</span></div></div>`).join('')}</div>
         ${t.delivered ? '' : `<div class="row" style="border:1px solid var(--line);border-radius:16px;padding:12px">
-          <div style="width:44px;height:44px;border-radius:22px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--em)">${esc((o.rider_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2))}</div>
+          <div style="width:44px;height:44px;border-radius:22px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--em-text)">${esc((o.rider_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2))}</div>
           <div class="stack" style="gap:2px;flex:1"><span class="serif" style="font-size:16px;font-weight:600">${o.rider_name ? esc(o.rider_name) + ' · your rider' : 'Rider not assigned yet'}</span><span class="s11 mute">Delivery OTP: <strong id="otp" style="color:var(--ink);letter-spacing:.15em">${otpCache[o.id] || '····'}</strong>${o.rider_phone ? ' · ' + esc(o.rider_phone) : ''}</span></div>
-          ${o.rider_phone ? `<a class="icon-btn" href="tel:${esc(o.rider_phone)}" aria-label="Call rider" style="background:var(--mint);color:var(--em)">${ICON.phone}</a>` : ''}</div>`}
+          ${o.rider_phone ? `<a class="icon-btn" href="tel:${esc(o.rider_phone)}" aria-label="Call rider" style="background:var(--mint);color:var(--em-text)">${ICON.phone}</a>` : ''}</div>`}
         ${orderCard(o)}
         ${o.status === 'placed' ? `<button class="btn ghost" id="cancelorder" data-id="${o.id}">Cancel order</button>` : ''}
         <button class="btn soft" data-go="#/help?order=${o.id}">Need help with this order?</button>
@@ -181,13 +181,13 @@ const screens = {
         <div class="row" style="justify-content:space-between"><span class="s14 b">${o.id}</span><span class="status ${o.status}">${['placed', 'accepted', 'packed', 'picked'].includes(o.status) ? (t.late ? 'Arriving' : 'Arriving in ' + t.clock) : STATUS[o.status]}</span></div>
         <span class="s12 mute">${o.order_items.map(i => esc(i.name)).join(', ')}</span>
         <div class="row" style="justify-content:space-between"><span class="s12 mute">${when(o.created_at)}</span><span class="s14 xb">${rupee(o.total)}</span></div></button>`; }).join('')
-      : `<div class="empty"><span style="color:var(--em)">${ICON.orders}</span><span class="b">No orders yet</span><button class="btn" data-go="#/" style="width:auto;padding:0 20px">Start shopping</button></div>`}
+      : `<div class="empty"><span style="color:var(--em-text)">${ICON.orders}</span><span class="b">No orders yet</span><button class="btn" data-go="#/" style="width:auto;padding:0 20px">Start shopping</button></div>`}
       </div></div>${tabbar('orders')}`;
   },
   account() {
     const p = C.profile;
     return `${topBar('Account')}<div class="scroll"><div class="pad stack">
-      <div class="card row" style="padding:16px"><div style="width:52px;height:52px;border-radius:26px;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--em)">${ICON.user}</div>
+      <div class="card row" style="padding:16px"><div style="width:52px;height:52px;border-radius:26px;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--em-text)">${ICON.user}</div>
         <div class="stack" style="gap:4px;flex:1">${p ? `<input id="myname" value="${esc(p.name)}" placeholder="Your name" style="font:inherit;font-weight:700;border:0;border-bottom:1px dashed var(--line);padding:2px 0;background:none"><span class="s12 mute">${esc(p.phone ? '+' + p.phone : p.email || '')}</span>` : `<span class="b">You are not logged in</span><span class="s12 mute">Log in with your mobile number</span>`}</div>
         ${p ? '' : `<button class="add" data-go="#/login?next=%23%2Faccount">Log in</button>`}</div>
       ${passCard()}
@@ -204,12 +204,12 @@ const screens = {
   login(q) {
     const phone = q.get('phone');
     return `${topBar(phone ? 'Enter OTP' : 'Log in', '', '#/')}<div class="scroll"><div class="pad stack" style="gap:20px">
-      <div class="row" style="gap:6px;font-size:26px;font-weight:800;letter-spacing:-.05em;color:var(--em);margin-top:12px">${LOGO()}<span>dawa<span style="color:#8A6D1F">4u</span></span></div>
+      <div class="row" style="gap:6px;font-size:26px;font-weight:800;letter-spacing:-.05em;color:var(--em-text);margin-top:12px">${LOGO()}<span>dawa<span style="color:#8A6D1F">4u</span></span></div>
       ${phone ? `<span class="serif" style="font-size:24px;font-weight:600">Enter the 6-digit code</span><span class="s13 mute" style="margin-top:-12px">Sent by SMS to +91 ${esc(phone)}</span>
         <div class="otp">${[0, 1, 2, 3, 4, 5].map(i => `<input inputmode="numeric" autocomplete="one-time-code" data-otp="${i}" aria-label="Digit ${i + 1}">`).join('')}</div>
         <button class="btn" id="verify">Verify &amp; continue</button><button class="add" id="resend" style="align-self:center">Resend code</button>`
       : `<span class="serif" style="font-size:24px;font-weight:600">Log in with your mobile number</span>
-        <label class="field">Mobile number<div class="row" style="gap:8px"><span class="b" style="padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff">+91</span><input id="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit number" style="flex:1"></div></label>
+        <label class="field">Mobile number<div class="row" style="gap:8px"><span class="b" style="padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card)">+91</span><input id="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit number" style="flex:1"></div></label>
         <button class="btn" id="sendotp">Send OTP</button><span class="s11 mute">By continuing you agree to the Terms and Privacy policy.</span>`}
       </div></div>`;
   },
@@ -244,14 +244,14 @@ const screens = {
         <label class="field">Topic<input id="tsub" value="${oid ? 'Order ' + esc(oid) : ''}" placeholder="e.g. Wrong item, refund"></label>
         <label class="field">Message<textarea id="tmsg" placeholder="Tell us what happened"></textarea></label>
         <button class="btn" id="ticket" data-order="${esc(oid)}">Send</button></div>
-        ${tickets.map(t => `<div class="card stack" style="padding:14px 16px;gap:4px"><span class="s13 b">${esc(t.subject)}</span><span class="s12 mute">${esc(t.message)}</span>${t.reply ? `<span class="s12" style="color:var(--em)"><b>dawa4u:</b> ${esc(t.reply)}</span>` : '<span class="s11 mute">We will reply soon</span>'}</div>`).join('')}`
+        ${tickets.map(t => `<div class="card stack" style="padding:14px 16px;gap:4px"><span class="s13 b">${esc(t.subject)}</span><span class="s12 mute">${esc(t.message)}</span>${t.reply ? `<span class="s12" style="color:var(--em-text)"><b>dawa4u:</b> ${esc(t.reply)}</span>` : '<span class="s11 mute">We will reply soon</span>'}</div>`).join('')}`
       : `<button class="btn" data-go="#/login?next=%23%2Fhelp">Log in to write to us</button>`}
       </div></div>`;
   }
 };
 const orderCard = o => `<div class="card stack" style="padding:14px 16px;gap:6px"><span class="s13 b">Order ${o.id} · ${esc(o.pharmacy_name)}</span>
   ${o.order_items.map(l => `<div class="billrow"><span class="mute">${l.qty} × ${esc(l.name)}</span><span>${rupee(l.price * l.qty)}</span></div>`).join('')}
-  <div class="hr"></div>${o.disc ? `<div class="billrow"><span class="mute">dawaPass discount</span><span style="color:var(--em)">− ${rupee(o.disc)}</span></div>` : ''}
+  <div class="hr"></div>${o.disc ? `<div class="billrow"><span class="mute">dawaPass discount</span><span style="color:var(--em-text)">− ${rupee(o.disc)}</span></div>` : ''}
   <div class="billrow"><span class="mute">Delivery + handling</span><span>${rupee(o.delivery + o.handling)}</span></div>
   ${o.pass_fee ? `<div class="billrow"><span class="mute">dawaPass</span><span>${rupee(o.pass_fee)}</span></div>` : ''}
   <div class="billrow b"><span>${o.pay_status === 'paid' ? 'Paid' : o.pay_method === 'cod' ? 'Pay cash' : 'Total'} · ${payLabel(o.pay_method)}</span><span>${rupee(o.total)}</span></div></div>`;

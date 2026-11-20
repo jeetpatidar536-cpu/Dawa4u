@@ -21,7 +21,7 @@ function header() {
   if (keep) return; // don't steal focus while typing
   $('#hdr').innerHTML = `
     <a href="#/" class="logo" aria-label="dawa4u home">${LOGO()}<span>dawa<span style="color:var(--gold-d)">4u</span></span></a>
-    <button class="loc hide-sm" data-go="#/location"><span style="font-size:11px;font-weight:700;color:var(--em)">${C.serviceable() ? 'DELIVERY IN 10–15 MIN' : 'DELIVER TO'}</span><span class="s13 b">${a ? esc(a.label) + ' · ' + esc(a.pin) : C.pin ? 'PIN ' + esc(C.pin) : 'Choose location'} ▾</span></button>
+    <button class="loc hide-sm" data-go="#/location"><span style="font-size:11px;font-weight:700;color:var(--em-text)">${C.serviceable() ? 'DELIVERY IN 10–15 MIN' : 'DELIVER TO'}</span><span class="s13 b">${a ? esc(a.label) + ' · ' + esc(a.pin) : C.pin ? 'PIN ' + esc(C.pin) : 'Choose location'} ▾</span></button>
     <label class="searchbar">${ICON.search}<input id="q" placeholder="Search medicines, brands, health products" value="${esc(term)}" autocomplete="off"></label>
     <nav class="top">
       <a href="#/orders" class="${r.name === 'orders' || r.name === 'track' ? 'on' : ''}">Orders</a>
@@ -54,12 +54,12 @@ const pages = {
     const o = C.liveOrder();
     const pop = (C.orders.length ? [...new Set(C.orders.flatMap(x => x.order_items.map(i => i.product_id)))] : ['p1', 'p31', 'p13', 'p36', 'p26']).map(id => C.byId[id]).filter(Boolean).slice(0, 5);
     return `
-    ${C.settings.announcement ? `<div style="background:var(--mint)"><div class="wrap s14 b" style="padding-top:10px;padding-bottom:10px;color:var(--em-d)">${esc(C.settings.announcement)}</div></div>` : ''}
-    ${o ? `<div style="background:#FEF3C7"><div class="wrap row" style="padding-top:12px;padding-bottom:12px;justify-content:space-between;flex-wrap:wrap"><span class="b s14" style="color:#92400E">Order ${o.id}: ${STATUS[o.status]} — arriving in <span data-clock="${o.id}">${C.track(o).clock}</span></span><a href="#/track/${o.id}" class="b s14">Track order →</a></div></div>` : ''}
+    ${C.settings.announcement ? `<div style="background:var(--mint)"><div class="wrap s14 b" style="padding-top:10px;padding-bottom:10px;color:var(--on-mint)">${esc(C.settings.announcement)}</div></div>` : ''}
+    ${o ? `<div style="background:var(--warn-bg)"><div class="wrap row" style="padding-top:12px;padding-bottom:12px;justify-content:space-between;flex-wrap:wrap"><span class="b s14" style="color:var(--warn-ink)">Order ${o.id}: ${STATUS[o.status]} — arriving in <span data-clock="${o.id}">${C.track(o).clock}</span></span><a href="#/track/${o.id}" class="b s14">Track order →</a></div></div>` : ''}
     <section class="wrap" style="padding-top:48px;padding-bottom:48px;display:flex;flex-wrap:wrap;gap:32px;align-items:stretch">
       <div class="card lift hero-l" style="flex:999 1 520px;border-radius:28px;padding:48px;display:flex;flex-direction:column;gap:20px;justify-content:center">
-        <span class="s13 b" style="letter-spacing:.08em;color:var(--em)">REGULATED APOTHECARY NETWORK</span>
-        <h1 class="serif big" style="font-size:52px;line-height:1.05">Medicines at your door in <em style="color:var(--em)">15 minutes.</em></h1>
+        <span class="s13 b" style="letter-spacing:.08em;color:var(--em-text)">REGULATED APOTHECARY NETWORK</span>
+        <h1 class="serif big" style="font-size:52px;line-height:1.05">Medicines at your door in <em style="color:var(--em-text)">15 minutes.</em></h1>
         <p style="margin:0;font-size:17px;line-height:1.6;max-width:520px" class="mute">Order from licensed partner pharmacies near you, in cities and villages. Every prescription is read by a licensed pharmacist.</p>
         <div class="row" style="flex-wrap:wrap"><a href="#/rx" class="btn">Upload prescription</a><a href="#/search" class="btn ghost">Browse medicines</a><a href="${esc(APP_URL)}" class="btn ghost">Get the app</a></div>
       </div>
@@ -73,7 +73,7 @@ const pages = {
     ${pop.length ? `<section class="wrap stack" style="gap:20px;padding-bottom:48px">
       <div class="row" style="justify-content:space-between"><h2 class="serif" style="font-size:28px">${C.orders.length ? 'Order again' : 'Popular near you'}</h2><a href="#/search" class="b">See all →</a></div>
       <div class="pgrid">${pop.map(prodCard).join('')}</div></section>` : ''}
-    <section style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap stack" style="padding-top:56px;padding-bottom:56px;gap:28px">
+    <section style="background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap stack" style="padding-top:56px;padding-bottom:56px;gap:28px">
       <h2 class="serif" style="font-size:28px">How dawa4u works</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">${[
         ['1', 'Search or upload', 'Find medicines by name, or upload a photo of your prescription.'],
@@ -105,8 +105,8 @@ const pages = {
       <div class="stack" style="flex:3 1 520px;gap:24px">
         ${pageHead('Upload prescription', 'A licensed pharmacist reads it and adds your medicines — no guesswork.')}
         <div><div class="progress">${[1, 2, 3].map(i => `<span class="${i <= stage ? 'on' : ''}"></span>`).join('')}</div>
-          <div class="row s13 b mute" style="justify-content:space-between;margin-top:8px"><span style="color:var(--em)">1 Upload</span><span style="${stage >= 2 ? 'color:var(--em)' : ''}">2 Pharmacist reads</span><span style="${stage >= 3 ? 'color:var(--em)' : ''}">3 Confirm &amp; pay</span></div></div>
-        ${x && !rej ? `<div class="card row" style="padding:20px;align-items:flex-start;gap:14px"><span style="width:44px;height:44px;border-radius:22px;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--em);flex-shrink:0">${done ? ICON.check : ICON.clock}</span>
+          <div class="row s13 b mute" style="justify-content:space-between;margin-top:8px"><span style="color:var(--em-text)">1 Upload</span><span style="${stage >= 2 ? 'color:var(--em-text)' : ''}">2 Pharmacist reads</span><span style="${stage >= 3 ? 'color:var(--em-text)' : ''}">3 Confirm &amp; pay</span></div></div>
+        ${x && !rej ? `<div class="card row" style="padding:20px;align-items:flex-start;gap:14px"><span style="width:44px;height:44px;border-radius:22px;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--em-text);flex-shrink:0">${done ? ICON.check : ICON.clock}</span>
             <span class="stack" style="gap:4px"><span class="b s15">${done ? 'Pharmacist added your medicines' : x.status === 'reading' ? 'A pharmacist is reading it now' : 'Waiting for a pharmacist'}</span><span class="s14 mute" style="line-height:1.6">${done ? `${x.items.length} medicine${x.items.length === 1 ? '' : 's'} added to your cart.${x.pharmacist_note ? ' Note: ' + esc(x.pharmacist_note) : ''}` : 'Usually about 3 minutes. Keep browsing — we will add the medicines to your cart.'}</span></span></div>
             ${done ? `<a href="#/cart" class="btn" style="align-self:flex-start">Go to cart</a>` : `<a href="#/search" class="btn ghost" style="align-self:flex-start">Keep shopping while you wait</a>`}`
         : `${rej ? `<div class="warn">The pharmacist could not use your last prescription: ${esc(x.pharmacist_note || 'unclear photo')}. Please upload a clearer photo.</div>` : ''}
@@ -116,7 +116,7 @@ const pages = {
           <label class="field">Note for pharmacist (optional)<textarea id="note" placeholder="e.g. Need only 10 days of medicine"></textarea></label>
           <button class="btn" id="sendrx" style="align-self:flex-start" ${pending.length ? '' : 'disabled'}>Send to pharmacist</button>`}
       </div>
-      <aside class="card stack" style="flex:1 1 300px;padding:24px;gap:12px"><span class="b s15">A valid prescription shows</span>${RX_RULES.map(t => `<div class="row s14" style="gap:10px"><span style="color:var(--em)">${ICON.check}</span>${t}</div>`).join('')}
+      <aside class="card stack" style="flex:1 1 300px;padding:24px;gap:12px"><span class="b s15">A valid prescription shows</span>${RX_RULES.map(t => `<div class="row s14" style="gap:10px"><span style="color:var(--em-text)">${ICON.check}</span>${t}</div>`).join('')}
         <div class="hr"></div><span class="s13 mute" style="line-height:1.6">Prescription medicines are dispensed only after a licensed pharmacist verifies your prescription.</span></aside>
     </div>`;
   },
@@ -150,8 +150,8 @@ const pages = {
           <div class="card lift stack" style="padding:24px;gap:12px">
             <span class="serif" style="font-size:20px">Bill summary</span>
             <div class="billrow"><span class="mute">Item total (MRP)</span><span>${rupee(b.mrp)}</span></div>
-            ${b.saved ? `<div class="billrow"><span class="mute">Pharmacy discount</span><span style="color:var(--em);font-weight:600">− ${rupee(b.saved)}</span></div>` : ''}
-            <div class="billrow"><span class="mute">dawaPass discount</span><span style="color:var(--em);font-weight:600">− ${rupee(b.disc)}</span></div>
+            ${b.saved ? `<div class="billrow"><span class="mute">Pharmacy discount</span><span style="color:var(--em-text);font-weight:600">− ${rupee(b.saved)}</span></div>` : ''}
+            <div class="billrow"><span class="mute">dawaPass discount</span><span style="color:var(--em-text);font-weight:600">− ${rupee(b.disc)}</span></div>
             <div class="billrow"><span class="mute">Delivery fee</span><span>${b.delivery ? rupee(b.delivery) : `<s class="mute">${rupee(C.settings.delivery_fee)}</s> FREE`}</span></div>
             <div class="billrow"><span class="mute">Handling</span><span>${rupee(b.handling)}</span></div>
             ${b.passFee ? `<div class="billrow"><span class="mute">dawaPass (1 month)</span><span>${rupee(b.passFee)}</span></div>` : ''}
@@ -171,7 +171,7 @@ const pages = {
     const items = `<div class="card stack" style="padding:24px;gap:10px;flex:1 1 360px"><span class="serif" style="font-size:20px">Items</span>
         ${o.order_items.map(l => `<div class="billrow"><span>${l.qty} × ${esc(l.name)}</span><span>${rupee(l.price * l.qty)}</span></div>`).join('')}
         <div class="hr"></div>
-        ${o.disc ? `<div class="billrow"><span class="mute">dawaPass discount</span><span style="color:var(--em)">− ${rupee(o.disc)}</span></div>` : ''}
+        ${o.disc ? `<div class="billrow"><span class="mute">dawaPass discount</span><span style="color:var(--em-text)">− ${rupee(o.disc)}</span></div>` : ''}
         <div class="billrow"><span class="mute">Delivery + handling</span><span>${rupee(o.delivery + o.handling)}</span></div>
         ${o.pass_fee ? `<div class="billrow"><span class="mute">dawaPass</span><span>${rupee(o.pass_fee)}</span></div>` : ''}
         <div class="billrow b"><span>${o.pay_status === 'paid' ? 'Paid' : o.pay_method === 'cod' ? 'Pay cash to rider' : 'Total'} · ${payLabel(o.pay_method)}</span><span>${rupee(o.total)}</span></div>
@@ -195,13 +195,13 @@ const pages = {
         `}
         <div class="card lift stack" style="flex:2 1 360px;padding:28px;gap:22px">
           <div class="row" style="justify-content:space-between">
-            <div class="stack" style="gap:2px"><span class="s14 mute b">${t.delivered ? 'Order' : 'Arriving in'}</span><span class="clock" style="${t.delivered ? 'color:var(--em);font-size:40px' : ''}">${t.delivered ? 'Delivered' : gpsEta[o.id] && o.status === 'picked' && gpsEta[o.id].min != null ? '~' + gpsEta[o.id].min + ' min' : t.late ? 'Any minute' : t.clock}</span>${!t.delivered && gpsEta[o.id] && gpsEta[o.id].km != null ? `<span class="s13 mute">Rider is ${gpsEta[o.id].km < 1 ? Math.round(gpsEta[o.id].km * 1000) + ' m' : gpsEta[o.id].km.toFixed(1) + ' km'} ${o.status === 'picked' ? 'from you' : 'from the pharmacy'}</span>` : ''}</div>
+            <div class="stack" style="gap:2px"><span class="s14 mute b">${t.delivered ? 'Order' : 'Arriving in'}</span><span class="clock" style="${t.delivered ? 'color:var(--em-text);font-size:40px' : ''}">${t.delivered ? 'Delivered' : gpsEta[o.id] && o.status === 'picked' && gpsEta[o.id].min != null ? '~' + gpsEta[o.id].min + ' min' : t.late ? 'Any minute' : t.clock}</span>${!t.delivered && gpsEta[o.id] && gpsEta[o.id].km != null ? `<span class="s13 mute">Rider is ${gpsEta[o.id].km < 1 ? Math.round(gpsEta[o.id].km * 1000) + ' m' : gpsEta[o.id].km.toFixed(1) + ' km'} ${o.status === 'picked' ? 'from you' : 'from the pharmacy'}</span>` : ''}</div>
             <div class="ring" style="background:conic-gradient(${t.delivered ? 'var(--em)' : 'var(--amber)'} 0 ${t.delivered ? 100 : t.pct}%, #FEF3C7 0 100%)"><div><span style="font-size:18px;font-weight:800;color:var(--ink)">15</span>min</div></div>
           </div>
           <div>${t.steps.map((s, i) => `<div class="tl"><div class="rail"><span class="d" style="background:${s.state === 'done' ? 'var(--em)' : '#fff'};border-color:${s.state === 'next' ? '#D1D5DB' : 'var(--em)'}"></span><span class="l" style="background:${i === 3 ? 'transparent' : s.state === 'done' ? 'var(--em)' : 'var(--line)'}"></span></div>
             <div class="stack" style="gap:2px;padding-bottom:14px"><span class="b s15" style="color:${s.state === 'next' ? 'var(--mute)' : 'var(--ink)'}">${s.title}</span><span class="s13 mute">${esc(s.sub)}</span></div></div>`).join('')}</div>
           ${t.delivered ? '' : `<div class="row" style="border:1px solid var(--line);border-radius:16px;padding:14px">
-            <div style="width:48px;height:48px;border-radius:24px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--em)">${esc((o.rider_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2))}</div>
+            <div style="width:48px;height:48px;border-radius:24px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--em-text)">${esc((o.rider_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2))}</div>
             <div class="stack" style="gap:2px;flex:1"><span class="serif" style="font-size:17px">${o.rider_name ? esc(o.rider_name) + ' · your rider' : 'Rider not assigned yet'}</span><span class="s13 mute">Delivery OTP: <strong id="otp" style="color:var(--ink);letter-spacing:.15em">${otpCache[o.id] || '····'}</strong></span></div>
             ${o.rider_phone ? `<a href="tel:${esc(o.rider_phone)}" class="btn soft" style="height:44px;padding:0 14px">${ICON.phone} ${esc(o.rider_phone)}</a>` : ''}</div>`}
         </div>
@@ -258,7 +258,7 @@ const pages = {
     const ph = r.q.get('as') !== 'rider';
     return `<div class="wrap" style="padding-top:48px;display:flex;flex-wrap:wrap;gap:32px">
       <div class="stack" style="flex:1 1 360px;gap:16px">${pageHead(ph ? 'Partner with dawa4u' : 'Ride with dawa4u', ph ? 'Get orders from customers near you. Works with your existing billing software (Marg and others).' : 'Deliver medicines in your area and earn on every trip.')}
-        ${(ph ? ['Orders from your neighbourhood, every day', 'Dashboard to read prescriptions and pack orders', 'Stock syncs with your billing / POS software', 'Weekly payouts to your bank account'] : ['Earn on every delivery', 'Short trips near your area', 'Log in with your mobile number — app in English and Hindi', 'Weekly payouts']).map(x => `<div class="row s15" style="gap:10px"><span style="color:var(--em)">${ICON.check}</span>${x}</div>`).join('')}
+        ${(ph ? ['Orders from your neighbourhood, every day', 'Dashboard to read prescriptions and pack orders', 'Stock syncs with your billing / POS software', 'Weekly payouts to your bank account'] : ['Earn on every delivery', 'Short trips near your area', 'Log in with your mobile number — app in English and Hindi', 'Weekly payouts']).map(x => `<div class="row s15" style="gap:10px"><span style="color:var(--em-text)">${ICON.check}</span>${x}</div>`).join('')}
         <a href="${ph ? '../pharmacy/' : '../rider/'}" class="btn ghost" style="align-self:flex-start;margin-top:8px">${ph ? 'Already approved? Open the pharmacy dashboard' : 'Open the rider app'}</a></div>
       <div class="card lift stack" style="flex:1 1 360px;padding:32px;gap:14px" id="joinform">
         <span class="serif" style="font-size:22px">${ph ? 'Register your interest' : 'Sign up to ride'}</span>
@@ -278,7 +278,7 @@ const pages = {
       ${C.user ? `<div class="card stack" style="padding:24px"><span class="serif" style="font-size:20px">Write to us</span>
         <label class="field">Topic<input id="tsub" value="${oid ? 'Order ' + esc(oid) : ''}"></label><label class="field">Message<textarea id="tmsg"></textarea></label>
         <button class="btn" id="ticket" data-order="${esc(oid)}" style="align-self:flex-start">Send</button></div>
-        ${tickets.map(t => `<div class="card stack" style="padding:16px 20px;gap:4px"><span class="b s14">${esc(t.subject)} · <span class="mute">${when(t.created_at)}</span></span><span class="s14 mute">${esc(t.message)}</span>${t.reply ? `<span class="s14" style="color:var(--em)"><b>dawa4u:</b> ${esc(t.reply)}</span>` : '<span class="s12 mute">We will reply soon</span>'}</div>`).join('')}`
+        ${tickets.map(t => `<div class="card stack" style="padding:16px 20px;gap:4px"><span class="b s14">${esc(t.subject)} · <span class="mute">${when(t.created_at)}</span></span><span class="s14 mute">${esc(t.message)}</span>${t.reply ? `<span class="s14" style="color:var(--em-text)"><b>dawa4u:</b> ${esc(t.reply)}</span>` : '<span class="s12 mute">We will reply soon</span>'}</div>`).join('')}`
       : `<a href="#/login?next=%23%2Fhelp" class="btn" style="align-self:flex-start">Log in to write to us</a>`}</div>`;
   }
 };
@@ -365,7 +365,7 @@ document.addEventListener('click', async e => {
       const name = $('#j1').value.trim(), phone = $('#j2').value.trim();
       if (!name || !/^[6-9]\d{9}$/.test(phone)) throw new Error('Enter your name and a valid mobile number');
       await shop.apply(el.dataset.as, name, phone, $('#j3').value.trim(), $('#j4').value.trim());
-      $('#joinform').innerHTML = `<span style="color:var(--em)">${ICON.check}</span><span class="serif" style="font-size:22px">Thank you!</span><span class="s15 mute">We have your details. Our team will call you within 2 working days.</span><a href="#/" class="btn" style="align-self:flex-start">Back to home</a>`;
+      $('#joinform').innerHTML = `<span style="color:var(--em-text)">${ICON.check}</span><span class="serif" style="font-size:22px">Thank you!</span><span class="s15 mute">We have your details. Our team will call you within 2 working days.</span><a href="#/" class="btn" style="align-self:flex-start">Back to home</a>`;
     }).catch(() => {});
     case 'ticket': return busy(el, async () => { const s = $('#tsub').value.trim(), m = $('#tmsg').value.trim(); if (!s || !m) throw new Error('Write a topic and message'); await shop.ticket(s, m, el.dataset.order || null); toast('Sent — we will reply soon'); tickets = await shop.tickets(); render(); }).catch(() => {});
   }

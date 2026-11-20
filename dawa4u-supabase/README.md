@@ -102,7 +102,7 @@ App IDs are `in.dawa4u.app` and `in.dawa4u.rider` (change them in `mobile/*/capa
 
 ## 6. Maps (live rider tracking)
 
-Maps use **Leaflet + OpenStreetMap** — free, no API key. Run `supabase/migrations/20261120100000_maps.sql` once (after the main migration).
+Maps use **Leaflet + OpenStreetMap** with CARTO's free dark map style — no API key. Run `supabase/migrations/20261120100000_maps.sql` once (after the main migration).
 - Customers drop a pin at their door when adding an address ("Use my location", search, or tap the map).
 - Pharmacies set their shop pin in **Settings**.
 - The rider app shares the phone's GPS every ~10 seconds while the rider is online. A customer sees the rider only while that rider is carrying their order; once the parcel is picked up the ETA is worked out from the rider's real position.
