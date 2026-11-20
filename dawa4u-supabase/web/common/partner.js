@@ -45,7 +45,7 @@ export function authScreen(root, { title, subtitle, allowSignup, onDone }) {
 /** Sidebar layout. nav = [{id, label, icon, count}] */
 export function shell(root, { nav, active, title, right = '', body, who = '' }) {
   root.innerHTML = `<div class="shell">
-    <aside class="side"><a class="logo" href="#/">${LOGO('#FAF7F2', '#C9A96E', 30)}<span>dawa<span style="color:var(--gold)">4u</span></span></a>
+    <aside class="side"><a class="logo" href="#/">${LOGO('#FFFBEA', '#E5CD82', 30)}<span>dawa<span style="color:var(--gold)">4u</span></span></a>
       ${nav.map(n => `<a href="#/${n.id}" class="${n.id === active ? 'on' : ''}">${n.icon}${esc(n.label)}${n.count ? `<span class="n">${n.count}</span>` : ''}</a>`).join('')}
       <a href="#" id="signout" style="margin-top:auto">${ICON.logout}Log out</a><div class="foot">${esc(who)}</div></aside>
     <div class="main">

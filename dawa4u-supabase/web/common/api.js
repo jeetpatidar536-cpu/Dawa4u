@@ -157,7 +157,7 @@ export const shop = {
       const rp = new window.Razorpay({
         key: rz.key_id, order_id: rz.razorpay_order_id, amount: rz.amount, currency: 'INR', name: 'dawa4u',
         description: 'Order ' + order.id, prefill: { contact: rz.phone || '', name: rz.name || '' },
-        theme: { color: '#064E3B' }, handler: resolve,
+        theme: { color: '#15370D' }, handler: resolve,
         modal: { ondismiss: () => reject(new Error('Payment cancelled. Your order is saved — tap Pay to try again.')) }
       });
       rp.on('payment.failed', e => reject(new Error(e.error?.description || 'Payment failed')));

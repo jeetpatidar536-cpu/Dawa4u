@@ -19,8 +19,8 @@ export function loadMaps() {
     const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'leaflet.css'; document.head.appendChild(css);
     const st = document.createElement('style');
     st.textContent = `.d4u-pin{display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);color:#fff;font:800 12px Inter,system-ui,sans-serif}
-      .d4u-pin.rider{transition:transform .9s linear}.leaflet-container{font-family:Inter,system-ui,sans-serif;background:#EFE8DC}
-      .d4u-mapbtn{position:absolute;z-index:500;background:#fff;border:0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:8px 12px;font:700 13px Inter,system-ui,sans-serif;color:#064E3B;cursor:pointer}`;
+      .d4u-pin.rider{transition:transform .9s linear}.leaflet-container{font-family:Inter,system-ui,sans-serif;background:#ECE6CF}
+      .d4u-mapbtn{position:absolute;z-index:500;background:#fff;border:0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:8px 12px;font:700 13px Inter,system-ui,sans-serif;color:#15370D;cursor:pointer}`;
     document.head.appendChild(st);
     const s = document.createElement('script'); s.src = base + 'leaflet.js';
     s.onload = () => res(window.L); s.onerror = () => rej(new Error('Map could not load'));
@@ -36,7 +36,7 @@ const svg = {
 };
 /** Round map markers in the dawa4u colours: kind = 'pharmacy' | 'home' | 'rider' | text */
 export function pinIcon(L, kind, label) {
-  const k = { pharmacy: ['#064E3B', svg.store, 34], home: ['#111827', svg.home, 34], rider: ['#C9A96E', svg.bike, 40] }[kind] || ['#064E3B', label || '', 30];
+  const k = { pharmacy: ['#15370D', svg.store, 34], home: ['#111827', svg.home, 34], rider: ['#E5CD82', svg.bike, 40] }[kind] || ['#15370D', label || '', 30];
   return L.divIcon({ className: '', html: `<div class="d4u-pin ${kind}" style="width:${k[2]}px;height:${k[2]}px;background:${k[0]}">${k[1]}</div>`, iconSize: [k[2], k[2]], iconAnchor: [k[2] / 2, k[2] / 2] });
 }
 
@@ -149,7 +149,7 @@ export async function trackingMap(el, order, { onEta } = {}) {
   const { L, map } = await makeMap(el, { center: drop ? [drop.lat, drop.lng] : pick ? [pick.lat, pick.lng] : INDIA, zoom: drop || pick ? 14 : 5 });
   if (pick) L.marker([pick.lat, pick.lng], { icon: pinIcon(L, 'pharmacy') }).addTo(map).bindTooltip(order.pharmacy_name || 'Pharmacy');
   if (drop) L.marker([drop.lat, drop.lng], { icon: pinIcon(L, 'home') }).addTo(map).bindTooltip(order.address_label || 'You');
-  const line = pick && drop ? L.polyline([[pick.lat, pick.lng], [drop.lat, drop.lng]], { color: '#064E3B', weight: 3, dashArray: '6 8', opacity: .7 }).addTo(map) : null;
+  const line = pick && drop ? L.polyline([[pick.lat, pick.lng], [drop.lat, drop.lng]], { color: '#15370D', weight: 3, dashArray: '6 8', opacity: .7 }).addTo(map) : null;
   const pts = [pick, drop].filter(Boolean).map(p => [p.lat, p.lng]);
   if (pts.length === 2) map.fitBounds(pts, { padding: [50, 50], maxZoom: 16 });
   let rider = null, stopWatch = null, cur = order, fitted = false;
