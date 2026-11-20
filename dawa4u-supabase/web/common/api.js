@@ -52,8 +52,10 @@ export const STATUS = {
 };
 export const ACTIVE = ['placed', 'accepted', 'packed', 'picked'];
 
-export const LOGO = (fg = '#064E3B', accent = '#9A7B3F', size = 36) =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 120 120" aria-hidden="true"><g transform="rotate(45 64 58)"><path d="M39 58 V38 A25 25 0 0 1 89 38 V58 Z" fill="${fg}"/><path d="M39 58 H89 V78 A25 25 0 0 1 39 78 Z" fill="${accent}"/></g></svg>`;
+// Capsule logo: bright green + bright gold. The white edge keeps it visible on the dark green headers.
+export const LOGO_GREEN = '#22C55E', LOGO_GOLD = '#FFC72C';
+export const LOGO = (_fg, _accent, size = 36) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 120 120" aria-hidden="true"><g transform="rotate(45 64 58)" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round"><path d="M39 58 V38 A25 25 0 0 1 89 38 V58 Z" fill="${LOGO_GREEN}"/><path d="M39 58 H89 V78 A25 25 0 0 1 39 78 Z" fill="${LOGO_GOLD}"/></g></svg>`;
 const sv = (d, w = 22, sw = 2) => `<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 export const ICON = {
   back: sv('<path d="m15 6-6 6 6 6"/>', 22, 2.2), search: sv('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 18),
