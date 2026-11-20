@@ -4,6 +4,8 @@
 // =====================================================================
 import { auth, me, adminApi as api, rupee, esc, when, timeAgo, toast, ICON, CATS, STATUS, payLabel, live, getSettings, errText } from '../common/api.js';
 import { $, $$, busy, authScreen, shell, toCsv, download } from '../common/partner.js';
+import { makeMap, pinIcon, INDIA } from '../common/map.js';
+import { sb } from '../common/api.js';
 
 const root = $('#root');
 const S = { user: null, profile: null, stats: null, cache: {}, q: '', status: '' };
@@ -38,6 +40,8 @@ const pages = {
         ${s.riders_pending ? `<a href="#/riders" class="pill warn" style="font-size:13px;padding:8px 14px">${s.riders_pending} rider waiting for approval</a>` : ''}
         ${s.refunds_due ? `<a href="#/refunds" class="pill bad" style="font-size:13px;padding:8px 14px">${s.refunds_due} refund to send</a>` : ''}
         ${s.rx_waiting ? `<span class="pill gold" style="font-size:13px;padding:8px 14px">${s.rx_waiting} prescriptions with pharmacists</span>` : ''}</div>` : ''}
+      <div class="card pad stack"><div class="row between"><span class="serif s18">Live map</span><span class="s12 mute">Riders (gold) · pharmacies (green) · live order drops (black) · updates every 15 s</span></div>
+        <div id="livemap" style="height:420px;border-radius:14px;overflow:hidden;background:var(--sand)"></div></div>
       <div class="cols">
         <div class="card pad stack"><span class="serif s18">Last 7 days</span>
           <div class="bars">${s.week.map(d => `<div><span class="s11 b">${d.gmv ? rupee(d.gmv) : ''}</span><span class="bar" style="height:${Math.round(d.gmv / max * 100)}%"></span><span class="s11 mute">${new Date(d.day).toLocaleDateString('en-IN', { weekday: 'short' })} · ${d.orders}</span></div>`).join('')}</div></div>
@@ -175,7 +179,21 @@ async function render() {
   const title = (nav.find(n => n.id === pg) || {}).label;
   shell(root, { nav, active: pg, title, who: S.profile.name || S.user.email, right: `<span class="s13 mute">${esc(S.user.email || '')}</span>`, body: '<div class="spin"></div>' });
   try { $('#content').innerHTML = await pages[pg](id); } catch (e) { $('#content').innerHTML = `<div class="card empty"><b>${esc(errText(e))}</b></div>`; }
+  if (pg === 'overview') liveMap().catch(() => { const m = $('#livemap'); if (m) m.innerHTML = '<div class="empty">Map could not load</div>'; });
   const f = $('#oq') || $('#cq'); if (f && (S.q || S.cq) && S.refocus) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); S.refocus = false; }
+}
+
+async function liveMap() {
+  const el = $('#livemap'); if (!el) return;
+  const [{ data: locs }, { data: riders }, { data: phs }, live] = await Promise.all([
+    sb.from('rider_locations').select('*'), sb.from('riders').select('id,name,online,status'), sb.from('pharmacies').select('id,name,lat,lng,status,open'), api.orders('placed,accepted,packed,picked')]);
+  const { L, map } = await makeMap(el, { center: INDIA, zoom: 5 });
+  const pts = [], fresh = Date.now() - 10 * 60000;
+  (phs || []).filter(p => p.lat != null && p.status === 'active').forEach(p => { L.marker([p.lat, p.lng], { icon: pinIcon(L, 'pharmacy') }).addTo(map).bindTooltip(`${esc(p.name)} · ${p.open ? 'open' : 'closed'}`); pts.push([p.lat, p.lng]); });
+  (live || []).filter(o => o.drop_lat != null).forEach(o => { L.marker([o.drop_lat, o.drop_lng], { icon: pinIcon(L, 'home') }).addTo(map).bindTooltip(`${o.id} · ${esc(STATUS[o.status])}`).on('click', () => { location.hash = '#/orders/' + o.id; }); pts.push([o.drop_lat, o.drop_lng]); });
+  const name = Object.fromEntries((riders || []).map(r => [r.id, r]));
+  (locs || []).filter(l => new Date(l.updated_at).getTime() > fresh).forEach(l => { L.marker([l.lat, l.lng], { icon: pinIcon(L, 'rider') }).addTo(map).bindTooltip(`${esc((name[l.rider_id] || {}).name || 'Rider')} · ${timeAgo(l.updated_at)}`); pts.push([l.lat, l.lng]); });
+  if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 14 });
 }
 
 function productModal(p) {

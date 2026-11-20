@@ -4,6 +4,7 @@
 // =====================================================================
 import { auth, rupee, esc, when, toast, CATS, RX_RULES, PAYS, payLabel, STATUS, LOGO, ICON, readImages, installable, shop } from '../common/api.js';
 import { C } from '../common/customer.js';
+import { locationPicker, trackingMap } from '../common/map.js';
 
 const $ = s => document.querySelector(s);
 const SUPPORT = (window.D4U_CONFIG || {}).SUPPORT_PHONE || '';
@@ -145,7 +146,9 @@ const screens = {
       <span class="s13 mute">${o.status === 'cancelled' ? esc(o.cancel_reason || '') + (o.pay_status === 'refund_due' ? ' · Your refund is being processed (3–5 days).' : '') : 'Complete the payment to send this order to the pharmacy. Unpaid orders are cancelled after ' + C.settings.payment_minutes + ' minutes.'}</span></div>
       ${orderCard(o)}</div></div>${o.status === 'pending_payment' ? `<div class="foot row"><button class="btn ghost" id="cancelorder" data-id="${o.id}" style="flex:1">Cancel</button><button class="btn" id="payagain" data-id="${o.id}" style="flex:2">Pay ${rupee(o.total)}</button></div>` : ''}`;
     return `<div class="scroll" style="display:flex;flex-direction:column">
-      <div class="map">
+      ${hasPins(o) ? `<div class="map" style="height:340px"><div id="tmap" data-order="${o.id}" style="position:absolute;inset:0"></div>
+        <button class="icon-btn" data-back="#/orders" aria-label="Back" style="position:absolute;z-index:600;left:16px;top:calc(env(safe-area-inset-top) + 16px);background:#fff">${ICON.back}</button></div>`
+      : `<div class="map">
         <div class="road" style="left:-20px;top:150px;width:440px;height:22px;transform:rotate(-8deg)"></div>
         <div class="road" style="left:210px;top:-20px;width:22px;height:440px;transform:rotate(6deg)"></div>
         <div class="road" style="left:40px;top:260px;width:360px;height:16px;transform:rotate(4deg)"></div>
@@ -154,10 +157,10 @@ const screens = {
         <div class="dot" style="left:220px;top:252px;width:36px;height:36px;background:var(--ink)">${ICON.house}</div>
         ${t.delivered || !o.rider_id ? '' : `<div class="dot" style="left:${70 + k * 150}px;top:${130 + k * 120}px;width:40px;height:40px;background:var(--gold)">${ICON.bike}</div>`}
         <button class="icon-btn" data-back="#/orders" aria-label="Back" style="position:absolute;left:16px;top:calc(env(safe-area-inset-top) + 16px);background:#fff">${ICON.back}</button>
-      </div>
+      </div>`}
       <div class="sheet" style="flex:1">
         <div class="row" style="justify-content:space-between">
-          <div class="stack" style="gap:2px"><span class="s13 mute b">${t.delivered ? 'Order ' + o.id : 'Arriving in'}</span><span class="clock" style="${t.delivered ? 'color:var(--em)' : ''}">${t.delivered ? 'Delivered' : t.late ? 'Any minute' : t.clock}</span></div>
+          <div class="stack" style="gap:2px"><span class="s13 mute b">${t.delivered ? 'Order ' + o.id : 'Arriving in'}</span><span class="clock" style="${t.delivered ? 'color:var(--em)' : ''}">${t.delivered ? 'Delivered' : gpsEta[o.id] && o.status === 'picked' && gpsEta[o.id].min != null ? '~' + gpsEta[o.id].min + ' min' : t.late ? 'Any minute' : t.clock}</span>${!t.delivered && gpsEta[o.id] && gpsEta[o.id].km != null ? `<span class="s11 mute">Rider is ${gpsEta[o.id].km < 1 ? Math.round(gpsEta[o.id].km * 1000) + ' m' : gpsEta[o.id].km.toFixed(1) + ' km'} ${o.status === 'picked' ? 'from you' : 'from the pharmacy'}</span>` : ''}</div>
           <div class="ring" style="background:conic-gradient(${t.delivered ? 'var(--em)' : 'var(--amber)'} 0 ${t.delivered ? 100 : t.pct}%, #FEF3C7 0 100%)"><div><span style="font-size:15px;font-weight:800;color:var(--ink)">15</span>min</div></div>
         </div>
         <div>${t.steps.map((s, i) => `<div class="tl"><div class="rail"><span class="d" style="background:${s.state === 'done' ? 'var(--em)' : '#fff'};border-color:${s.state === 'next' ? '#D1D5DB' : 'var(--em)'}"></span><span class="l" style="background:${i === 3 ? 'transparent' : s.state === 'done' ? 'var(--em)' : 'var(--line)'}"></span></div>
@@ -214,6 +217,8 @@ const screens = {
     return `${topBar('Delivery address', '', '#/')}<div class="scroll"><div class="pad stack">
       ${C.user ? `<div class="stack" style="gap:10px">${C.addresses.map(a => `<label class="opt ${C.cart.addressId === a.id ? 'on' : ''}" style="align-items:flex-start"><input type="radio" name="addr" value="${a.id}" ${C.cart.addressId === a.id ? 'checked' : ''}><span class="stack" style="gap:3px"><span class="s14 b">${esc(a.label)}</span><span class="s12 mute" style="font-weight:500">${esc(a.line)} · ${esc(a.pin)}</span></span></label>`).join('') || '<span class="s13 mute">No saved addresses yet.</span>'}</div>
       <div class="card stack" style="padding:16px;gap:12px"><span class="s14 b">Add a new address</span>
+        <div id="addrmap" style="height:240px;border-radius:14px;overflow:hidden;background:var(--sand)"></div>
+        <span class="s12 mute" id="pinhint">Tap the map or use your location to drop a pin at your door.</span>
         <label class="field">Label<input id="alabel" placeholder="Home, Office, Parents…"></label>
         <label class="field">Full address<input id="aline" placeholder="House no., street, area, landmark"></label>
         <label class="field">PIN code<input id="apin" inputmode="numeric" maxlength="6" placeholder="6 digits"></label>
@@ -251,6 +256,11 @@ const orderCard = o => `<div class="card stack" style="padding:14px 16px;gap:6px
   ${o.pass_fee ? `<div class="billrow"><span class="mute">dawaPass</span><span>${rupee(o.pass_fee)}</span></div>` : ''}
   <div class="billrow b"><span>${o.pay_status === 'paid' ? 'Paid' : o.pay_method === 'cod' ? 'Pay cash' : 'Total'} · ${payLabel(o.pay_method)}</span><span>${rupee(o.total)}</span></div></div>`;
 
+const hasPins = o => o.drop_lat != null || o.pickup_lat != null;
+const gpsEta = {};          // orderId -> {min, km} from the rider's live GPS
+let live = null;            // { id, node, ctl } — the tracking map survives re-renders
+let picked = null;          // pin chosen on the address map {lat,lng}
+
 // ------------------------------------------------ router
 let pending = [], ticker, tickets = [];
 const otpCache = {};
@@ -260,7 +270,9 @@ function render() {
   const v = $('#view');
   if (!C.ready) { v.innerHTML = '<div class="spin"></div>'; return; }
   const sc = v.querySelector('.scroll'), y = v.dataset.route === location.hash && sc ? sc.scrollTop : 0;
+  if (live && live.node.parentNode) live.node.remove();
   v.innerHTML = (screens[name] || screens.home)(q, parts[1]);
+  mountMaps(name, parts[1]);
   v.dataset.route = location.hash;
   const sc2 = v.querySelector('.scroll'); if (sc2 && y) sc2.scrollTop = y;
   clearInterval(ticker);
@@ -268,6 +280,30 @@ function render() {
   if (name === 'track' && parts[1] && !otpCache[parts[1]]) shop.otp(parts[1]).then(x => { if (x) { otpCache[parts[1]] = x; const el = $('#otp'); if (el) el.textContent = x; } }).catch(() => {});
   if (name === 'help' && C.user) shop.tickets().then(t => { if (JSON.stringify(t) !== JSON.stringify(tickets)) { tickets = t; render(); } }).catch(() => {});
   const f = $('input#phone') || $('[data-otp="0"]'); if (f) f.focus();
+}
+function mountMaps(name, id) {
+  const slot = document.getElementById('tmap');
+  if (name !== 'track' || !slot) { if (live) { live.ctl.then(c => c.stop()); live = null; } }
+  if (slot) {
+    const o = C.orders.find(x => x.id === slot.dataset.order);
+    if (live && live.id === o.id) { slot.replaceWith(live.node); live.ctl.then(c => { c.update(o); c.map.invalidateSize(); }); }
+    else {
+      if (live) live.ctl.then(c => c.stop());
+      live = { id: o.id, node: slot, ctl: trackingMap(slot, o, { onEta: (min, km) => { gpsEta[o.id] = { min, km }; } }) };
+      live.ctl.catch(() => {});
+    }
+  }
+  const pick = document.getElementById('addrmap');
+  if (pick && !pick.dataset.ready) {
+    pick.dataset.ready = '1'; picked = null;
+    locationPicker(pick, { onChange: p => {
+      picked = { lat: p.lat, lng: p.lng };
+      const l = document.getElementById('aline'), pn = document.getElementById('apin');
+      if (l && (!l.value || l.dataset.auto) && p.line) { l.value = p.line; l.dataset.auto = '1'; }
+      if (pn && (!pn.value || pn.dataset.auto) && /^[1-9]\d{5}$/.test(p.pin || '')) { pn.value = p.pin; pn.dataset.auto = '1'; }
+      const h = document.getElementById('pinhint'); if (h) h.textContent = '📍 Pin set — the rider will come here';
+    } }).catch(() => { pick.innerHTML = '<div class="s12 mute" style="padding:12px">Map could not load. You can still type your address.</div>'; });
+  }
 }
 C.on(() => {
   if (C.justVerified) { C.justVerified = null; toast('Pharmacist added your medicines to the cart'); }
@@ -306,7 +342,7 @@ document.addEventListener('click', async e => {
       if (code.length < 6) return toast('Enter all 6 digits');
       return busy(el, async () => { await auth.verifyOtp(qp.get('phone'), code); await C.setUser((await auth.user())); toast('Logged in'); location.replace(qp.get('next') || '#/'); }).catch(() => {});
     }
-    case 'addaddr': return busy(el, async () => { await C.addAddress($('#alabel').value.trim(), $('#aline').value.trim(), $('#apin').value.trim()); toast('Address saved'); }).catch(() => {});
+    case 'addaddr': return busy(el, async () => { await C.addAddress($('#alabel').value.trim(), $('#aline').value.trim(), $('#apin').value.trim(), picked && picked.lat, picked && picked.lng); toast('Address saved'); render(); }).catch(() => {});
     case 'joinpass': C.togglePass(true); return go('#/cart');
     case 'ticket': return busy(el, async () => { const s = $('#tsub').value.trim(), m = $('#tmsg').value.trim(); if (!s || !m) throw new Error('Write a topic and message'); await shop.ticket(s, m, el.dataset.order || null); toast('Sent — we will reply soon'); tickets = await shop.tickets(); render(); }).catch(() => {});
   }

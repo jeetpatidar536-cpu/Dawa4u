@@ -4,6 +4,7 @@
 // =====================================================================
 import { auth, me, pharmacy as api, rx as rxApi, rupee, esc, when, timeAgo, toast, ICON, CATS, STATUS, payLabel, live, ding, installable, errText } from '../common/api.js';
 import { $, $$, busy, authScreen, shell, copy, toCsv, download } from '../common/partner.js';
+import { locationPicker } from '../common/map.js';
 
 const root = $('#root');
 const S = { user: null, ph: null, products: [], inv: {}, orders: [], rxq: [], rxDone: [], seen: new Set(), firstLoad: true, stockFilter: '', stockCat: '' };
@@ -85,7 +86,7 @@ const pages = {
   orders() {
     const col = (title, list, hint) => `<div class="stack" style="gap:12px"><div class="row between"><span class="b s15">${title}</span><span class="pill grey">${list.length}</span></div>${list.map(orderCard).join('') || `<div class="card empty s13">${hint}</div>`}</div>`;
     const by = s => S.orders.filter(o => s.includes(o.status));
-    return `${!S.ph.open ? `<div class="card pad row" style="background:#FEF3C7;border-color:#FDE68A"><b>Your shop is closed</b><span class="mute">Customers can't order from you.</span><button class="btn sm" id="openshop" style="margin-left:auto">Open shop</button></div>` : ''}
+    return `${S.ph.lat == null ? `<a href="#/settings" class="card pad row" style="text-decoration:none;color:inherit;border-color:var(--gold)"><span style="color:var(--gold-d)">${ICON.pin}</span><b>Set your shop location on the map</b><span class="mute s13">so riders can find you</span><span class="btn sm gold" style="margin-left:auto">Set pin</span></a>` : ''}${!S.ph.open ? `<div class="card pad row" style="background:#FEF3C7;border-color:#FDE68A"><b>Your shop is closed</b><span class="mute">Customers can't order from you.</span><button class="btn sm" id="openshop" style="margin-left:auto">Open shop</button></div>` : ''}
       ${S.rxq.filter(r => r.status === 'pending').length ? `<a href="#/rx" class="card pad row" style="text-decoration:none;color:inherit;border-color:var(--gold)"><span style="color:var(--gold-d)">${ICON.rx}</span><b>${S.rxq.filter(r => r.status === 'pending').length} prescription(s) waiting to be read</b><span class="btn sm gold" style="margin-left:auto">Read now</span></a>` : ''}
       <div class="cols">${col('New', by(['placed']), 'New orders appear here with a sound.')}${col('Packing', by(['accepted']), 'Accepted orders you are packing.')}${col('Ready for rider', by(['packed']), 'Packed orders waiting for pickup.')}${col('Out for delivery', by(['picked']), 'Picked up by the rider.')}</div>`;
   },
@@ -147,7 +148,11 @@ X-POS-Key: &lt;your key&gt;</pre>
       <div class="card pad stack"><span class="serif s18">Registered details</span>
         <div class="stack s13" style="gap:6px"><span><b>Name:</b> ${esc(p.name)}</span><span><b>Licence:</b> ${esc(p.licence_no)}</span><span><b>City:</b> ${esc(p.city)}</span><span><b>Delivers to PIN:</b> ${p.pins.map(esc).join(', ') || '—'}</span></div>
         <span class="s12 mute">To change these, contact dawa4u support.</span>
-        <button class="btn ghost sm" id="notif" style="align-self:flex-start">Turn on desktop alerts</button></div></div>`;
+        <button class="btn ghost sm" id="notif" style="align-self:flex-start">Turn on desktop alerts</button></div></div>
+      <div class="card pad stack"><span class="serif s18">Shop location on the map</span>
+        <span class="mute s13">Riders use this pin to find you, and customers see it on their tracking map. Drag the pin to your shop door.</span>
+        <div id="shopmap" style="height:340px;border-radius:14px;overflow:hidden;background:var(--sand)"></div>
+        <div class="row"><button class="btn" id="savepin" disabled>Save shop location</button><span class="s12 mute" id="pinstate">${p.lat != null ? 'Saved: ' + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) : 'Not set yet'}</span></div></div>`;
   }
 };
 
@@ -198,6 +203,10 @@ async function after(page, id) {
   if (page === 'rx' && !id) $('#rxdone').addEventListener('toggle', async () => { S.rxDone = await api.rxDone(); $('#rxdonelist').innerHTML = S.rxDone.map(r => `<a href="#/rx/${r.id}" class="row between" style="text-decoration:none;color:inherit"><span>${when(r.reviewed_at)} · PIN ${esc(r.pin)}</span><span class="pill ${r.status === 'done' ? '' : 'bad'}">${r.status === 'done' ? r.items.length + ' medicines' : 'Rejected'}</span></a>`).join('') || '<span class="mute">None yet</span>'; }, { once: true });
   if (page === 'pos') { const k = await api.posKey(S.ph.id).catch(() => null); $('#poskey').textContent = k ? k.pos_key : 'Not available'; }
   if (page === 'sales') loadSales();
+  if (page === 'settings') {
+    S.newPin = null;
+    locationPicker($('#shopmap'), { lat: S.ph.lat, lng: S.ph.lng, search: true, onChange: p => { S.newPin = p; const b = $('#savepin'); if (b) b.disabled = false; $('#pinstate').textContent = 'New pin: ' + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) + ' — press Save'; } }).catch(() => { $('#shopmap').innerHTML = '<div class="empty">Map could not load</div>'; });
+  }
 }
 async function loadSales() {
   const days = +($('#range')?.value || 7), from = new Date(Date.now() - (days - 1) * 864e5); from.setHours(0, 0, 0, 0);
@@ -239,6 +248,7 @@ document.addEventListener('click', async e => {
     return busy(el, async () => { await api.setStock(items); await loadInv(); toast('Stock saved'); render(); });
   }
   if (el.id === 's-save') return busy(el, async () => { const patch = { phone: $('#s-phone').value.trim(), address: $('#s-addr').value.trim() }; await api.update(S.ph.id, patch); Object.assign(S.ph, patch); toast('Saved'); });
+  if (el.id === 'savepin' && S.newPin) return busy(el, async () => { await api.update(S.ph.id, { lat: S.newPin.lat, lng: S.newPin.lng }); S.ph.lat = S.newPin.lat; S.ph.lng = S.newPin.lng; toast('Shop location saved'); $('#pinstate').textContent = 'Saved'; el.disabled = true; });
   if (el.id === 'copykey') return copy($('#poskey').textContent, 'POS key copied');
   if (el.id === 'notif') { const p = await Notification.requestPermission().catch(() => 'denied'); return toast(p === 'granted' ? 'Desktop alerts on' : 'Alerts blocked in browser settings'); }
   if (el.id === 'exportsales') return download('dawa4u-sales.csv', toCsv(S.sales || [], [['Order', o => o.id], ['Date', o => when(o.created_at)], ['Status', o => o.status], ['Payment', o => o.pay_method], ['Medicines', o => o.order_items.map(i => i.qty + 'x ' + i.name).join('; ')], ['Amount', o => o.sub - o.disc]]));

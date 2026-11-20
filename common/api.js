@@ -118,10 +118,10 @@ export async function getSettings() { return must(sb.from('settings').select('*'
 export const shop = {
   catalog: pin => must(sb.rpc('shop_catalog', { p_pin: pin })),
   addresses: () => must(sb.from('addresses').select('*').order('created_at')),
-  addAddress: (label, line, pin) => {
+  addAddress: (label, line, pin, lat = null, lng = null) => {
     if (!label || !line) throw new Error('Fill in the label and full address');
     if (!/^[1-9]\d{5}$/.test(pin)) throw new Error('Enter a valid 6-digit PIN code');
-    return must(sb.from('addresses').insert({ label, line, pin }).select().single());
+    return must(sb.from('addresses').insert({ label, line, pin, lat, lng }).select().single());
   },
   deleteAddress: id => must(sb.from('addresses').delete().eq('id', id)),
   orders: () => must(sb.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }).limit(50)),

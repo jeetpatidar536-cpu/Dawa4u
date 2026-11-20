@@ -114,8 +114,8 @@ export const C = {
     return { sub, mrp, saved: mrp - sub, disc, delivery, handling, passFee, total: sub - disc + delivery + handling + passFee };
   },
   address() { return this.addresses.find(a => a.id === this.cart.addressId) || null; },
-  async addAddress(label, line, pin) {
-    const a = await shop.addAddress(label, line, pin);
+  async addAddress(label, line, pin, lat, lng) {
+    const a = await shop.addAddress(label, line, pin, lat, lng);
     this.addresses.push(a); this.cart.addressId = a.id; this.save();
     if (a.pin !== this.pin) await this.setPin(a.pin);
     emit(); return a;
