@@ -1,0 +1,6 @@
+node_modules/
+.env
+supabase/.temp/
+supabase/.branches/
+mobile/*/www/
+mobile/*/android/app/build/

@@ -1,0 +1,23 @@
+# Supabase CLI settings for dawa4u (used by `supabase start` locally and `supabase functions deploy`)
+project_id = "dawa4u"
+
+[auth]
+site_url = "http://localhost:5500"
+additional_redirect_urls = ["http://localhost:5500"]
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+# Test numbers that always accept a fixed code (no SMS sent) — handy for Play Store review & demos
+[auth.sms.test_otp]
+919999999999 = "123456"
+
+[auth.email]
+enable_signup = true
+
+[functions.razorpay-webhook]
+verify_jwt = false
+[functions.pos-sync]
+verify_jwt = false
+[functions.sms-hook]
+verify_jwt = false
