@@ -6,8 +6,9 @@
 import { sb } from './api.js';
 
 const cfg = window.D4U_CONFIG || {};
-const TILES = cfg.MAP_TILES || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-const ATTR = cfg.MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+// Default: CARTO's free dark style (matches the dark app theme). Free for light use with attribution.
+const TILES = cfg.MAP_TILES || 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const ATTR = cfg.MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 export const INDIA = [22.97, 78.65];
 const base = new URL('./vendor/leaflet/', import.meta.url).href;
 
@@ -19,8 +20,8 @@ export function loadMaps() {
     const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'leaflet.css'; document.head.appendChild(css);
     const st = document.createElement('style');
     st.textContent = `.d4u-pin{display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);color:#fff;font:800 12px Inter,system-ui,sans-serif}
-      .d4u-pin.rider{transition:transform .9s linear}.leaflet-container{font-family:Inter,system-ui,sans-serif;background:#ECE6CF}
-      .d4u-mapbtn{position:absolute;z-index:500;background:#fff;border:0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:8px 12px;font:700 13px Inter,system-ui,sans-serif;color:#15370D;cursor:pointer}`;
+      .d4u-pin.rider{transition:transform .9s linear}.leaflet-container{font-family:Inter,system-ui,sans-serif;background:#0E1A0B}.leaflet-control-attribution{background:rgba(11,23,8,.7)!important;color:#A7B39F}.leaflet-control-attribution a{color:#8DCB7B}
+      .d4u-mapbtn{position:absolute;z-index:500;background:var(--card);border:0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.4);padding:8px 12px;font:700 13px Inter,system-ui,sans-serif;color:#8DCB7B;background:#13230F;cursor:pointer}`;
     document.head.appendChild(st);
     const s = document.createElement('script'); s.src = base + 'leaflet.js';
     s.onload = () => res(window.L); s.onerror = () => rej(new Error('Map could not load'));
@@ -31,12 +32,12 @@ export function loadMaps() {
 
 const svg = {
   store: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
-  home: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7v9H3z"/></svg>',
+  home: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#13230F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7v9H3z"/></svg>',
   bike: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17h3l3-7h4l2 7M12 10 10 6H7"/></svg>'
 };
 /** Round map markers in the dawa4u colours: kind = 'pharmacy' | 'home' | 'rider' | text */
 export function pinIcon(L, kind, label) {
-  const k = { pharmacy: ['#15370D', svg.store, 34], home: ['#111827', svg.home, 34], rider: ['#E5CD82', svg.bike, 40] }[kind] || ['#15370D', label || '', 30];
+  const k = { pharmacy: ['#2C6420', svg.store, 34], home: ['#F1ECD6', svg.home, 34], rider: ['#E5CD82', svg.bike, 40] }[kind] || ['#15370D', label || '', 30];
   return L.divIcon({ className: '', html: `<div class="d4u-pin ${kind}" style="width:${k[2]}px;height:${k[2]}px;background:${k[0]}">${k[1]}</div>`, iconSize: [k[2], k[2]], iconAnchor: [k[2] / 2, k[2] / 2] });
 }
 
@@ -91,8 +92,8 @@ export async function placeAt(lat, lng) {
 export async function locationPicker(el, { lat, lng, onChange, search = true } = {}) {
   el.style.position = 'relative';
   el.innerHTML = `<div class="d4u-mapbox" style="position:absolute;inset:0;border-radius:inherit"></div>
-    ${search ? `<input class="d4u-mapsearch" placeholder="Search area, street, landmark" style="position:absolute;z-index:500;top:10px;left:10px;right:10px;width:calc(100% - 20px);box-sizing:border-box;border:0;border-radius:10px;padding:10px 12px;font:14px Inter,system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)">
-    <div class="d4u-results" style="position:absolute;z-index:600;top:50px;left:10px;right:10px;background:#fff;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.2);display:none;max-height:180px;overflow:auto;font:13px Inter,system-ui,sans-serif"></div>` : ''}
+    ${search ? `<input class="d4u-mapsearch" placeholder="Search area, street, landmark" style="position:absolute;z-index:500;top:10px;left:10px;right:10px;width:calc(100% - 20px);box-sizing:border-box;border:1px solid #2A3F25;border-radius:10px;padding:10px 12px;font:14px Inter,system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4);background:#13230F;color:#F1ECD6">
+    <div class="d4u-results" style="position:absolute;z-index:600;top:50px;left:10px;right:10px;background:var(--card);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.2);display:none;max-height:180px;overflow:auto;font:13px Inter,system-ui,sans-serif"></div>` : ''}
     <button type="button" class="d4u-mapbtn d4u-locate" style="bottom:12px;right:12px">◎ Use my location</button>`;
   const has = lat != null && lng != null;
   const { L, map } = await makeMap(el.querySelector('.d4u-mapbox'), { center: has ? [lat, lng] : INDIA, zoom: has ? 16 : 5 });
@@ -116,7 +117,7 @@ export async function locationPicker(el, { lat, lng, onChange, search = true } =
     let st;
     box.oninput = () => { clearTimeout(st); if (box.value.trim().length < 3) { res.style.display = 'none'; return; }
       st = setTimeout(async () => { try { const list = await searchPlace(box.value.trim());
-        res.innerHTML = list.map((x, i) => `<div data-i="${i}" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid #eee">${x.name.replace(/</g, '&lt;')}</div>`).join('') || '<div style="padding:9px 12px;color:#4B5563">No match — drag the pin instead</div>';
+        res.innerHTML = list.map((x, i) => `<div data-i="${i}" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid #2A3F25">${x.name.replace(/</g, '&lt;')}</div>`).join('') || '<div style="padding:9px 12px;color:#4B5563">No match — drag the pin instead</div>';
         res.style.display = 'block'; res.onclick = e => { const d = e.target.closest('[data-i]'); if (!d) return; const x = list[+d.dataset.i]; res.style.display = 'none'; box.value = ''; moved(x, true); };
       } catch { res.style.display = 'none'; } }, 450); };
   }

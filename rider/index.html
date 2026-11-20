@@ -17,11 +17,11 @@ body{font-family:Inter,'Noto Sans Devanagari',system-ui,sans-serif;font-size:15p
 #app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--ivory)}
 .rtop{background:var(--em);padding:calc(env(safe-area-inset-top) + 14px) 18px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
 .rmain{flex:1;padding-bottom:90px}
-.rtabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding:8px 8px calc(env(safe-area-inset-bottom) + 8px)}
+.rtabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding:8px 8px calc(env(safe-area-inset-bottom) + 8px)}
 .rtabs button{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--mute);font-size:12px;font-weight:600;min-height:48px;justify-content:center}
-.rtabs button.on{color:var(--em);font-weight:700}
+.rtabs button.on{color:var(--em-text);font-weight:700}
 .leg{display:flex;flex-direction:column;gap:4px;padding-left:14px;border-left:3px solid var(--gold)}
-.leg.done{opacity:.5;border-left-color:var(--em)}
+.leg.done{opacity:.5;border-left-color:var(--em-text)}
 .btn.lg{height:56px;font-size:17px}
 summary{cursor:pointer}
 </style>

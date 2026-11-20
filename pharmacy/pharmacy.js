@@ -63,7 +63,7 @@ function registerScreen() {
   });
 }
 function waitScreen() {
-  root.innerHTML = `<div class="auth"><div class="card"><span style="color:var(--em)">${ICON.clock}</span>
+  root.innerHTML = `<div class="auth"><div class="card"><span style="color:var(--em-text)">${ICON.clock}</span>
     <h1 class="serif" style="margin:0;font-size:24px;font-weight:600">${S.ph.status === 'pending' ? 'Waiting for approval' : 'Account paused'}</h1>
     <span class="mute">${S.ph.status === 'pending' ? `Thanks for registering <b>${esc(S.ph.name)}</b>. Our team will verify licence ${esc(S.ph.licence_no)} and switch you on.` : 'Your pharmacy is paused. Please contact dawa4u support.'}</span>
     <button class="btn ghost" id="w-re">Check again</button><a href="#" id="w-out" class="s13">Log out</a></div></div>`;
@@ -86,7 +86,7 @@ const pages = {
   orders() {
     const col = (title, list, hint) => `<div class="stack" style="gap:12px"><div class="row between"><span class="b s15">${title}</span><span class="pill grey">${list.length}</span></div>${list.map(orderCard).join('') || `<div class="card empty s13">${hint}</div>`}</div>`;
     const by = s => S.orders.filter(o => s.includes(o.status));
-    return `${S.ph.lat == null ? `<a href="#/settings" class="card pad row" style="text-decoration:none;color:inherit;border-color:var(--gold)"><span style="color:var(--gold-d)">${ICON.pin}</span><b>Set your shop location on the map</b><span class="mute s13">so riders can find you</span><span class="btn sm gold" style="margin-left:auto">Set pin</span></a>` : ''}${!S.ph.open ? `<div class="card pad row" style="background:#FEF3C7;border-color:#FDE68A"><b>Your shop is closed</b><span class="mute">Customers can't order from you.</span><button class="btn sm" id="openshop" style="margin-left:auto">Open shop</button></div>` : ''}
+    return `${S.ph.lat == null ? `<a href="#/settings" class="card pad row" style="text-decoration:none;color:inherit;border-color:var(--gold)"><span style="color:var(--gold-d)">${ICON.pin}</span><b>Set your shop location on the map</b><span class="mute s13">so riders can find you</span><span class="btn sm gold" style="margin-left:auto">Set pin</span></a>` : ''}${!S.ph.open ? `<div class="card pad row" style="background:var(--warn-bg);border-color:#5A4614"><b>Your shop is closed</b><span class="mute">Customers can't order from you.</span><button class="btn sm" id="openshop" style="margin-left:auto">Open shop</button></div>` : ''}
       ${S.rxq.filter(r => r.status === 'pending').length ? `<a href="#/rx" class="card pad row" style="text-decoration:none;color:inherit;border-color:var(--gold)"><span style="color:var(--gold-d)">${ICON.rx}</span><b>${S.rxq.filter(r => r.status === 'pending').length} prescription(s) waiting to be read</b><span class="btn sm gold" style="margin-left:auto">Read now</span></a>` : ''}
       <div class="cols">${col('New', by(['placed']), 'New orders appear here with a sound.')}${col('Packing', by(['accepted']), 'Accepted orders you are packing.')}${col('Ready for rider', by(['packed']), 'Packed orders waiting for pickup.')}${col('Out for delivery', by(['picked']), 'Picked up by the rider.')}</div>`;
   },
@@ -271,7 +271,7 @@ document.addEventListener('change', async e => {
     const byName = Object.fromEntries(S.products.map(p => [norm(p.name), p])), byCode = Object.fromEntries(S.products.filter(p => p.pos_code).map(p => [p.pos_code.toLowerCase(), p]));
     if (S.stockFilter || S.stockCat) { S.stockFilter = ''; S.stockCat = ''; render(); }
     let n = 0; const miss = [];
-    for (const l of lines) { const p = (ci >= 0 && byCode[(l[ci] || '').toLowerCase()]) || byName[norm(l[ni] || '')]; if (!p) { miss.push(l[ni]); continue; } const inp = $(`[data-stock="${p.id}"]`); if (inp) { inp.value = Math.max(0, Math.round(+l[si] || 0)); inp.style.background = '#ECFDF5'; } n++; }
+    for (const l of lines) { const p = (ci >= 0 && byCode[(l[ci] || '').toLowerCase()]) || byName[norm(l[ni] || '')]; if (!p) { miss.push(l[ni]); continue; } const inp = $(`[data-stock="${p.id}"]`); if (inp) { inp.value = Math.max(0, Math.round(+l[si] || 0)); inp.style.background = '#1C3318'; } n++; }
     toast(`Matched ${n} items${miss.length ? `, ${miss.length} not found` : ''}. Check and press Save changes.`, 5000);
   }
 });
