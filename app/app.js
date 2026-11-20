@@ -51,7 +51,7 @@ const screens = {
       <div class="hero">
         <div class="row" style="justify-content:space-between">
           <div class="stack" style="gap:2px">
-            <span class="row" style="gap:4px;font-size:18px;font-weight:800;letter-spacing:-.05em;color:var(--ivory)">${LOGO('#FAF7F2', '#C9A96E', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span style="font-size:12px;font-weight:600;letter-spacing:0;opacity:.9;margin-left:6px">${C.serviceable() ? '· delivering in 15 min' : ''}</span></span>
+            <span class="row" style="gap:4px;font-size:18px;font-weight:800;letter-spacing:-.05em;color:var(--ivory)">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span style="font-size:12px;font-weight:600;letter-spacing:0;opacity:.9;margin-left:6px">${C.serviceable() ? '· delivering in 15 min' : ''}</span></span>
             <button data-go="#/location" style="color:#fff;font-size:16px;font-weight:700;min-height:32px;text-align:left">${a ? esc(a.label) + ' · ' + esc(a.pin) : C.pin ? 'PIN ' + esc(C.pin) : 'Choose location'} ▾</button>
           </div>
           <button class="icon-btn" data-go="#/account" aria-label="Account" style="background:rgba(255,255,255,.16);color:#fff">${ICON.user}</button>
@@ -204,7 +204,7 @@ const screens = {
   login(q) {
     const phone = q.get('phone');
     return `${topBar(phone ? 'Enter OTP' : 'Log in', '', '#/')}<div class="scroll"><div class="pad stack" style="gap:20px">
-      <div class="row" style="gap:6px;font-size:26px;font-weight:800;letter-spacing:-.05em;color:var(--em);margin-top:12px">${LOGO()}<span>dawa<span style="color:#9A7B3F">4u</span></span></div>
+      <div class="row" style="gap:6px;font-size:26px;font-weight:800;letter-spacing:-.05em;color:var(--em);margin-top:12px">${LOGO()}<span>dawa<span style="color:#8A6D1F">4u</span></span></div>
       ${phone ? `<span class="serif" style="font-size:24px;font-weight:600">Enter the 6-digit code</span><span class="s13 mute" style="margin-top:-12px">Sent by SMS to +91 ${esc(phone)}</span>
         <div class="otp">${[0, 1, 2, 3, 4, 5].map(i => `<input inputmode="numeric" autocomplete="one-time-code" data-otp="${i}" aria-label="Digit ${i + 1}">`).join('')}</div>
         <button class="btn" id="verify">Verify &amp; continue</button><button class="add" id="resend" style="align-self:center">Resend code</button>`

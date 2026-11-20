@@ -12,7 +12,7 @@ const APP_URL = (window.D4U_CONFIG || {}).APP_URL || '../app/';
 const go = h => { location.hash = h; };
 const busy = async (btn, fn) => { if (btn) { btn.disabled = true; btn.dataset.t = btn.innerHTML; btn.innerHTML = 'Please wait…'; } try { return await fn(); } catch (e) { toast(C.errText(e), 3500); throw e; } finally { if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = btn.dataset.t; } } };
 C._warn = m => toast(m);
-$('#flogo').innerHTML = LOGO('#FAF7F2', '#C9A96E', 32) + '<span>dawa<span style="color:var(--gold)">4u</span></span>';
+$('#flogo').innerHTML = LOGO('#FFFBEA', '#E5CD82', 32) + '<span>dawa<span style="color:var(--gold)">4u</span></span>';
 const route = () => { const [p, qs] = (location.hash.slice(1) || '/').split('?'); const parts = p.split('/').filter(Boolean); return { name: parts[0] || 'home', id: parts[1], q: new URLSearchParams(qs || '') }; };
 
 function header() {
@@ -39,7 +39,7 @@ const prodCard = p => `<div class="card prod"><div class="ph">${esc(p.name[0])}<
 const passPanel = (big = true) => C.hasPass()
   ? `<div style="background:var(--em);color:#fff;border-radius:${big ? 28 : 20}px;padding:${big ? 36 : 24}px;display:flex;flex-direction:column;gap:12px;justify-content:center;flex:1">
       <span class="s13 b" style="letter-spacing:.08em;color:var(--gold)">DAWAPASS · ACTIVE</span><span class="serif" style="font-size:26px">You save ${C.settings.pass_off}% on every order</span>
-      <span class="s14" style="color:#CDE4D7">Free delivery and priority · till ${new Date(C.profile.pass_until).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span></div>`
+      <span class="s14" style="color:#D5E0D2">Free delivery and priority · till ${new Date(C.profile.pass_until).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span></div>`
   : `<div style="background:var(--em);color:#fff;border-radius:${big ? 28 : 20}px;padding:${big ? 36 : 24}px;display:flex;flex-direction:column;gap:14px;justify-content:space-between;flex:1">
       <div class="stack" style="gap:10px"><span class="s13 b" style="letter-spacing:.08em;color:var(--gold)">DAWAPASS</span><span style="font-size:44px;font-weight:800;letter-spacing:-.02em">${rupee(C.settings.pass_price)}<span style="font-size:18px;font-weight:600;opacity:.8">/month</span></span></div>
       <div class="stack s15" style="gap:10px"><span>✓ 15–20% off medicines</span><span>✓ Free delivery on every order</span><span>✓ Priority fulfilment</span></div>
@@ -130,7 +130,7 @@ const pages = {
       ${need.length ? `<button class="warn" data-go="#/rx">⚠ ${need.map(l => esc(l.name)).join(', ')} need${need.length === 1 ? 's' : ''} a prescription. Upload it here — a pharmacist verifies it before you pay.</button>` : ''}
       <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
         <div class="stack" style="flex:3 1 560px;gap:20px;min-width:0">
-          <section class="card" style="padding:8px 24px">${L.map((l, n) => `<div class="row" style="flex-wrap:wrap;gap:16px;padding:18px 0;${n < L.length - 1 ? 'border-bottom:1px solid rgba(6,78,59,.08)' : ''}">
+          <section class="card" style="padding:8px 24px">${L.map((l, n) => `<div class="row" style="flex-wrap:wrap;gap:16px;padding:18px 0;${n < L.length - 1 ? 'border-bottom:1px solid rgba(21,55,13,.08)' : ''}">
             <div class="ph" style="width:72px;height:72px;font-size:24px;flex-shrink:0">${esc(l.name[0])}</div>
             <div class="stack" style="flex:1 1 220px;gap:3px;min-width:0"><span class="b" style="font-size:16px">${esc(l.name)}</span><span class="s13 mute">${esc(l.salt || '')}${l.rx ? ' · prescription medicine' : ''}</span><span class="s13 mute">${esc(l.pack)}</span></div>
             ${stepper(l)}<span class="b" style="width:96px;text-align:right;font-size:16px;font-variant-numeric:tabular-nums">${rupee(l.price * l.qty)}</span></div>`).join('')}</section>
@@ -145,7 +145,7 @@ const pages = {
         <aside class="stack" style="flex:2 1 340px;gap:16px;position:sticky;top:96px">
           ${C.hasPass() ? `<span class="ok" style="border-radius:16px;padding:14px 18px">${ICON.check} dawaPass applied — ${C.settings.pass_off}% off and free delivery</span>`
             : `<div style="background:var(--em);color:#fff;border-radius:20px;padding:22px 24px;display:flex;gap:14px;align-items:center">
-              <div class="stack" style="flex:1;gap:4px"><span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--gold)">DAWAPASS</span><span class="serif" style="font-size:20px">Save ${rupee(Math.round(b.sub * C.settings.pass_off / 100) + C.settings.delivery_fee)} on this order</span><span class="s13" style="color:#CDE4D7">15–20% off + free delivery · ${rupee(C.settings.pass_price)}/month</span></div>
+              <div class="stack" style="flex:1;gap:4px"><span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--gold)">DAWAPASS</span><span class="serif" style="font-size:20px">Save ${rupee(Math.round(b.sub * C.settings.pass_off / 100) + C.settings.delivery_fee)} on this order</span><span class="s13" style="color:#D5E0D2">15–20% off + free delivery · ${rupee(C.settings.pass_price)}/month</span></div>
               <button class="btn gold" data-pass style="height:44px;padding:0 18px;font-size:14px">${C.cart.buyPass ? 'Remove' : 'Add'}</button></div>`}
           <div class="card lift stack" style="padding:24px;gap:12px">
             <span class="serif" style="font-size:20px">Bill summary</span>
