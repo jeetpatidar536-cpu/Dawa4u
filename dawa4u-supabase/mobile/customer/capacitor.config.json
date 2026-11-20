@@ -1,0 +1,8 @@
+{
+  "appId": "in.dawa4u.app",
+  "appName": "dawa4u",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "backgroundColor": "#FAF7F2" },
+  "ios": { "backgroundColor": "#FAF7F2", "contentInset": "never" }
+}

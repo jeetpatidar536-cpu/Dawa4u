@@ -1,0 +1,8 @@
+{
+  "appId": "in.dawa4u.rider",
+  "appName": "dawa4u Rider",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "backgroundColor": "#064E3B" },
+  "ios": { "backgroundColor": "#064E3B", "contentInset": "never" }
+}
