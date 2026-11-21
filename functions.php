@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /** Where the ordering apps live. Change this one line if the apps move. */
-define( 'DAWA4U_APPS', 'https://dawa4u.in/' ); // shop/, app/, pharmacy/, rider/, admin/ live next to WordPress
+define( 'DAWA4U_APPS', 'https://dawa4u.in/' ); // where the old apps lived — old links to them are pointed at the WordPress pages below
 
 require_once __DIR__ . '/inc/medicines.php';
 
@@ -22,6 +22,8 @@ add_action( 'after_setup_theme', function () {
 	add_theme_support( 'html5', array( 'search-form', 'gallery', 'caption', 'style', 'script' ) );
 	add_theme_support( 'editor-styles' );
 	add_editor_style( 'editor.css' );
+	add_theme_support( 'woocommerce', array( 'thumbnail_image_width' => 400, 'single_image_width' => 600 ) );
+	add_theme_support( 'wc-product-gallery-lightbox' );
 	register_nav_menus( array(
 		'primary' => __( 'Main menu', 'dawa4u' ),
 		'footer'  => __( 'Footer menu', 'dawa4u' ),
@@ -31,6 +33,82 @@ add_action( 'after_setup_theme', function () {
 add_action( 'wp_enqueue_scripts', function () {
 	wp_enqueue_style( 'dawa4u-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&display=swap', array(), null );
 	wp_enqueue_style( 'dawa4u', get_stylesheet_uri(), array( 'dawa4u-fonts' ), wp_get_theme()->get( 'Version' ) );
+	if ( class_exists( 'WooCommerce' ) ) {
+		wp_enqueue_style( 'dawa4u-woo', get_template_directory_uri() . '/woo.css', array( 'dawa4u' ), wp_get_theme()->get( 'Version' ) );
+	}
+} );
+
+/** Shop links (WooCommerce pages, with safe fallbacks). */
+function dawa4u_url( $what ) {
+	$wc = function_exists( 'wc_get_page_permalink' );
+	switch ( $what ) {
+		case 'shop':
+			return $wc ? wc_get_page_permalink( 'shop' ) : home_url( '/medicines/' );
+		case 'cart':
+			return $wc ? wc_get_cart_url() : home_url( '/cart/' );
+		case 'account':
+			return $wc ? wc_get_page_permalink( 'myaccount' ) : home_url( '/my-account/' );
+		case 'orders':
+			return $wc ? wc_get_account_endpoint_url( 'orders' ) : home_url( '/my-account/orders/' );
+		case 'rx':
+			return function_exists( 'd4u_page_url' ) ? d4u_page_url( 'rx' ) : home_url( '/upload-prescription/' );
+		case 'pharmacy':
+			return function_exists( 'd4u_page_url' ) ? d4u_page_url( 'pharmacy' ) : home_url( '/pharmacy-dashboard/' );
+		case 'rider':
+			return function_exists( 'd4u_page_url' ) ? d4u_page_url( 'rider' ) : home_url( '/rider-dashboard/' );
+		case 'help':
+			return home_url( '/help/#write' );
+	}
+	return home_url( '/' );
+}
+
+/** Cart button in the header (count updates when something is added). */
+function dawa4u_cart_link() {
+	if ( ! function_exists( 'WC' ) ) {
+		return '';
+	}
+	$n = WC()->cart ? WC()->cart->get_cart_contents_count() : 0;
+	return '<a class="d4-cart" href="' . esc_url( wc_get_cart_url() ) . '" aria-label="Cart (' . (int) $n . ')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg><span class="d4-cart-n"' . ( $n ? '' : ' hidden' ) . '>' . (int) $n . '</span></a>';
+}
+add_filter( 'woocommerce_add_to_cart_fragments', function ( $f ) {
+	$f['a.d4-cart'] = dawa4u_cart_link();
+	return $f;
+} );
+
+/** Search + medicine groups above the medicine list. */
+function dawa4u_shop_tools() {
+	if ( ! function_exists( 'is_shop' ) || ! ( is_shop() || is_product_taxonomy() || ( is_search() && 'product' === get_query_var( 'post_type' ) ) ) ) {
+		return;
+	}
+	$current = is_product_category() ? get_queried_object_id() : 0;
+	echo '<div class="d4-shop-tools">';
+	echo '<form role="search" method="get" class="d4-search" action="' . esc_url( home_url( '/' ) ) . '"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" name="s" placeholder="Search medicines, e.g. paracetamol" value="' . esc_attr( get_search_query() ) . '" aria-label="Search medicines"><input type="hidden" name="post_type" value="product"></form>';
+	echo '<nav class="d4-chips" aria-label="Medicine groups"><a class="' . ( $current || is_search() ? '' : 'on' ) . '" href="' . esc_url( dawa4u_url( 'shop' ) ) . '">All</a>';
+	$terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true, 'meta_key' => 'order', 'orderby' => 'meta_value_num' ) ); // phpcs:ignore
+	foreach ( is_array( $terms ) ? $terms : array() as $t ) {
+		echo '<a class="' . ( $current === $t->term_id ? 'on' : '' ) . '" href="' . esc_url( get_term_link( $t ) ) . '">' . esc_html( $t->name ) . '</a>';
+	}
+	echo '<a href="' . esc_url( dawa4u_url( 'rx' ) ) . '">Upload prescription</a></nav></div>';
+}
+add_action( 'woocommerce_archive_description', 'dawa4u_shop_tools', 20 );
+
+/* Simpler WooCommerce pages: no sidebar, no breadcrumbs on the medicine list. */
+remove_action( 'woocommerce_sidebar', 'woocommerce_get_sidebar', 10 );
+add_action( 'wp', function () {
+	if ( function_exists( 'is_shop' ) && ( is_shop() || is_product_taxonomy() ) ) {
+		remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
+	}
+} );
+add_filter( 'loop_shop_columns', function () {
+	return 4;
+} );
+add_filter( 'loop_shop_per_page', function () {
+	return 48;
+} );
+add_filter( 'woocommerce_output_related_products_args', function ( $a ) {
+	$a['posts_per_page'] = 4;
+	$a['columns']        = 4;
+	return $a;
 } );
 
 /** Light / dark mode: decided before the page paints (auto = follows the phone / computer). */
@@ -138,12 +216,12 @@ function d4b_faq( $q, $a ) {
  * ------------------------------------------------------------------ */
 
 function dawa4u_pages() {
-	$shop = DAWA4U_APPS . 'shop/';
-	$app  = DAWA4U_APPS . 'app/';
-	$rx   = DAWA4U_APPS . 'shop/#/rx';
-	$help = DAWA4U_APPS . 'shop/#/help';
-	$ph   = DAWA4U_APPS . 'pharmacy/';
-	$rd   = DAWA4U_APPS . 'rider/';
+	$shop = dawa4u_url( 'shop' );
+	$app  = dawa4u_url( 'orders' );
+	$rx   = dawa4u_url( 'rx' );
+	$help = dawa4u_url( 'help' );
+	$ph   = dawa4u_url( 'pharmacy' );
+	$rd   = dawa4u_url( 'rider' );
 
 	$pass_benefits = d4b_list( array(
 		'<strong>15–20% off</strong> medicines on every order',
@@ -160,7 +238,7 @@ function dawa4u_pages() {
 			d4b_buttons( array(
 				array( 'Order medicines', $shop, 'd4-gold' ),
 				array( 'Upload prescription', $rx ),
-				array( 'Get the app', $app, 'is-style-outline' ),
+				array( 'My orders', $app, 'is-style-outline' ),
 			) )
 		) .
 		d4b_h( 'Why dawa4u' ) .
@@ -410,7 +488,17 @@ add_action( 'init', 'dawa4u_setup_v2', 100 );
 
 /** Pages made before the apps moved to dawa4u.in still hold the old github.io links: point them here. */
 add_filter( 'the_content', function ( $html ) {
-	return str_replace( 'https://jeetpatidar536-cpu.github.io/Dawa4u/', DAWA4U_APPS, $html );
+	$html = str_replace( 'https://jeetpatidar536-cpu.github.io/Dawa4u/', DAWA4U_APPS, $html );
+	$map  = array(
+		DAWA4U_APPS . 'shop/#/rx'   => dawa4u_url( 'rx' ),
+		DAWA4U_APPS . 'shop/#/help' => dawa4u_url( 'help' ),
+		DAWA4U_APPS . 'shop/'       => dawa4u_url( 'shop' ),
+		DAWA4U_APPS . 'app/'        => dawa4u_url( 'orders' ),
+		DAWA4U_APPS . 'pharmacy/'   => dawa4u_url( 'pharmacy' ),
+		DAWA4U_APPS . 'rider/'      => dawa4u_url( 'rider' ),
+		'>Get the app<'             => '>My orders<',
+	);
+	return str_replace( array_keys( $map ), array_values( $map ), $html );
 }, 5 );
 
 /** Fallback menu if none is assigned. */

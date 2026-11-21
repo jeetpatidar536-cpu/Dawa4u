@@ -9,11 +9,11 @@
     <div>
       <h4>Order</h4>
       <ul>
-        <li><a href="<?php echo dawa4u_app( 'shop/' ); // phpcs:ignore ?>">Shop online</a></li>
-        <li><a href="<?php echo dawa4u_app( 'app/' ); // phpcs:ignore ?>">Customer app</a></li>
-        <li><a href="<?php echo dawa4u_app( 'shop/#/rx' ); // phpcs:ignore ?>">Upload prescription</a></li>
-        <li><a href="<?php echo dawa4u_app( 'pharmacy/' ); // phpcs:ignore ?>">Pharmacy login</a></li>
-        <li><a href="<?php echo dawa4u_app( 'rider/' ); // phpcs:ignore ?>">Rider login</a></li>
+        <li><a href="<?php echo esc_url( dawa4u_url( 'shop' ) ); ?>">Medicines</a></li>
+        <li><a href="<?php echo esc_url( dawa4u_url( 'rx' ) ); ?>">Upload prescription</a></li>
+        <li><a href="<?php echo esc_url( dawa4u_url( 'account' ) ); ?>">My account</a></li>
+        <li><a href="<?php echo esc_url( dawa4u_url( 'pharmacy' ) ); ?>">Pharmacy login</a></li>
+        <li><a href="<?php echo esc_url( dawa4u_url( 'rider' ) ); ?>">Rider login</a></li>
       </ul>
     </div>
     <div>
