@@ -1,0 +1,8 @@
+/* Make the block editor look like the live site. */
+.editor-styles-wrapper { background: #0B1708; color: #F1ECD6; font-family: Inter, system-ui, sans-serif; }
+.editor-styles-wrapper h1, .editor-styles-wrapper h2, .editor-styles-wrapper h3 { font-family: "Playfair Display", Georgia, serif; color: #F1ECD6; }
+.editor-styles-wrapper a { color: #8DCB7B; }
+.editor-styles-wrapper .d4-hero, .editor-styles-wrapper .d4-band, .editor-styles-wrapper .wp-block-details { background: #13230F; border-radius: 22px; padding: 28px; }
+.editor-styles-wrapper .d4-pass { background: #2C6420; border-radius: 22px; padding: 28px; }
+.editor-styles-wrapper .wp-block-button__link { background: #2C6420; color: #fff; border-radius: 14px; }
+.editor-styles-wrapper .d4-gold .wp-block-button__link { background: #E5CD82; color: #1E1A08; }

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": false,
+    "color": {
+      "defaultPalette": false,
+      "palette": [
+        { "slug": "bg", "color": "#0B1708", "name": "Night green" },
+        { "slug": "card", "color": "#13230F", "name": "Card green" },
+        { "slug": "em", "color": "#2C6420", "name": "dawa4u green" },
+        { "slug": "em-text", "color": "#8DCB7B", "name": "Light green" },
+        { "slug": "gold", "color": "#E5CD82", "name": "Gold" },
+        { "slug": "ink", "color": "#F1ECD6", "name": "Cream" }
+      ]
+    },
+    "layout": { "contentSize": "1072px", "wideSize": "1120px" }
+  }
+}
