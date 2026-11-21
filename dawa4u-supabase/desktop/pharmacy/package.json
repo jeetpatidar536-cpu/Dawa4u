@@ -1,0 +1,39 @@
+{
+  "name": "dawa4u-pharmacy-desktop",
+  "productName": "dawa4u Pharmacy",
+  "version": "1.0.0",
+  "description": "dawa4u Pharmacy for Windows — orders, prescriptions and stock for dawa4u partner pharmacies.",
+  "author": "dawa4u",
+  "homepage": "https://dawa4u.in/",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "in.dawa4u.pharmacy",
+    "productName": "dawa4u Pharmacy",
+    "copyright": "© dawa4u",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "offline.html", "build/icon.png"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png",
+      "artifactName": "dawa4u-Pharmacy-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "dawa4u Pharmacy"
+    },
+    "compression": "maximum"
+  }
+}

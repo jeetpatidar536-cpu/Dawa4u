@@ -1,20 +1,16 @@
 {
   "name": "dawa4u-mobile",
   "private": true,
-  "description": "Native Android / iPhone builds of the dawa4u customer and rider apps (Capacitor wraps the web apps in ../web).",
+  "description": "Native Android builds of the dawa4u customer, rider and pharmacy apps (Capacitor). They open the live apps on dawa4u.in, with a bundled copy as fallback.",
   "scripts": {
     "build": "node build.mjs",
-    "customer:android": "node build.mjs customer && cd customer && npx cap sync android && npx cap open android",
-    "customer:ios": "node build.mjs customer && cd customer && npx cap sync ios && npx cap open ios",
-    "rider:android": "node build.mjs rider && cd rider && npx cap sync android && npx cap open android",
-    "rider:ios": "node build.mjs rider && cd rider && npx cap sync ios && npx cap open ios"
+    "sync": "node build.mjs && npx cap sync android --config customer/capacitor.config.json"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.1.2"
+    "@capacitor/cli": "^8.6.2"
   },
   "dependencies": {
-    "@capacitor/android": "^6.1.2",
-    "@capacitor/core": "^6.1.2",
-    "@capacitor/ios": "^6.1.2"
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2"
   }
 }

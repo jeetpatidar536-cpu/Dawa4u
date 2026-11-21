@@ -2,7 +2,17 @@
   "appId": "in.dawa4u.app",
   "appName": "dawa4u",
   "webDir": "www",
-  "server": { "androidScheme": "https" },
-  "android": { "backgroundColor": "#FAF7F2" },
-  "ios": { "backgroundColor": "#FAF7F2", "contentInset": "never" }
+  "server": {
+    "url": "https://dawa4u.in/app/",
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "dawa4u.in",
+      "*.dawa4u.in"
+    ]
+  },
+  "android": {
+    "backgroundColor": "#0B1708",
+    "allowMixedContent": false
+  }
 }

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">dawa4u Rider</string>
+    <string name="title_activity_main">dawa4u Rider</string>
+    <string name="package_name">in.dawa4u.rider</string>
+    <string name="custom_url_scheme">in.dawa4u.rider</string>
+</resources>

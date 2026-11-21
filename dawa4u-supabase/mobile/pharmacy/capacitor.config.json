@@ -1,0 +1,18 @@
+{
+  "appId": "in.dawa4u.pharmacy",
+  "appName": "dawa4u Pharmacy",
+  "webDir": "www",
+  "server": {
+    "url": "https://dawa4u.in/pharmacy/",
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "dawa4u.in",
+      "*.dawa4u.in"
+    ]
+  },
+  "android": {
+    "backgroundColor": "#0B1708",
+    "allowMixedContent": false
+  }
+}
