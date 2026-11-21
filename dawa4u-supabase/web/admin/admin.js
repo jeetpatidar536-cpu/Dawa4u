@@ -76,7 +76,7 @@ const pages = {
   async pharmacies() {
     const rows = await api.pharmacies(); S.cache.ph = rows;
     return `<div class="card" style="overflow:auto"><table><thead><tr><th>Pharmacy</th><th>Licence</th><th>City · PIN codes</th><th>Phone</th><th>Open</th><th>Status</th><th></th></tr></thead><tbody>
-      ${rows.map(p => `<tr><td><b>${esc(p.name)}</b><div class="s12 mute">${esc(p.address)}</div></td><td class="s13">${esc(p.licence_no)}</td>
+      ${rows.map(p => `<tr><td><b>${esc(p.name)}</b><div class="s12 mute">${esc(p.address)}</div><div class="s12" style="margin-top:4px">${esc(p.owner_email || '')} ${p.email_verified_at ? '<span class="pill" title="Email verified">✓ verified</span>' : '<span class="pill warn" title="They must click the link in the email we sent">email not verified</span>'}</div></td><td class="s13">${esc(p.licence_no)}</td>
         <td class="s13">${esc(p.city)}<div><input class="inp" style="width:220px;padding:6px 8px;font-size:12px" data-pins="${p.id}" value="${esc(p.pins.join(', '))}"></div></td><td class="s13">${esc(p.phone)}</td>
         <td>${p.open ? '<span class="pill">Open</span>' : '<span class="pill grey">Closed</span>'}</td><td>${pill(p.status)}</td>
         <td class="row" style="gap:6px">${p.status !== 'active' ? `<button class="btn sm" data-partner="pharmacy" data-id="${p.id}" data-st="active">Approve</button>` : `<button class="btn sm danger" data-partner="pharmacy" data-id="${p.id}" data-st="suspended">Suspend</button>`}
