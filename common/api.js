@@ -140,23 +140,23 @@ export const shop = {
     p_items: items, p_address_id: addressId, p_pay_method: payMethod, p_prescription_id: prescriptionId || null, p_buy_pass: !!buyPass
   })),
 
-  /** UPI (direct to our UPI ID): the customer pays from the order page and sends the 12-digit reference. */
-  submitUpi: (id, ref) => must(sb.rpc('submit_upi_ref', { p_order_id: id, p_ref: ref })),
+  /** Direct UPI fallback (before Cashfree is set up): customer says they paid; an admin confirms it. */
+  upiSent: id => must(sb.rpc('upi_mark_sent', { p_order_id: id })),
 
-  /** Take payment for an unpaid order.
-   *  UPI  -> nothing to do here; the order page shows the QR / UPI app button.
-   *  Card / netbanking -> Cashfree popup, then the server checks with Cashfree.
-   *  Test mode (settings.payments_test_mode) lets orders through while payments are not set up. */
+  /** Take payment for an unpaid order through Cashfree (UPI, card or netbanking).
+   *  Cashfree confirms the payment to our server, so customers never type a reference number.
+   *  If Cashfree is not set up yet: UPI orders fall back to a QR for settings.upi_id (shown on the order page);
+   *  in test mode (settings.payments_test_mode) other orders go through without real payment. */
   async pay(order, settings) {
     if (order.pay_method === 'cod' || order.status !== 'pending_payment') return order;
     const testPay = () => must(sb.rpc('test_pay', { p_order_id: order.id }));
-    if (order.pay_method === 'upi') return settings && !settings.upi_id && settings.payments_test_mode ? testPay() : order;
-
     const r = await sb.functions.invoke('cashfree-order', { body: { order_id: order.id } });
     const cf = r.data;
     if (r.error || !cf || cf.error) {
       const msg = cf?.error || (await r.error?.context?.json?.().then(j => j.error).catch(() => null)) || r.error?.message || '';
-      if (settings && settings.payments_test_mode && (/not set up/i.test(msg) || /Failed to send|FunctionsFetchError|404/i.test(msg + (r.error?.name || '')))) return testPay();
+      const notSetUp = /not set up/i.test(msg) || /Failed to send|FunctionsFetchError|404/i.test(msg + (r.error?.name || '')) || [404, 503].includes(r.error?.context?.status);
+      if (notSetUp && order.pay_method === 'upi' && settings && settings.upi_id) return order;   // order page shows the UPI QR
+      if (notSetUp && settings && settings.payments_test_mode) return testPay();
       throw new Error(msg || 'Could not start payment');
     }
     let closed = null;
@@ -166,12 +166,12 @@ export const shop = {
       const res = await cashfree.checkout({ paymentSessionId: cf.payment_session_id, redirectTarget: '_modal' });
       if (res && res.error) closed = res.error.message;
     }
-    for (let i = 0; i < (closed ? 1 : 4); i++) {
+    for (let i = 0; i < (closed ? 1 : 5); i++) {
       const v = await sb.functions.invoke('cashfree-verify', { body: { order_id: order.id } });
       if (v.data && v.data.paid) return v.data.order;
-      await new Promise(ok => setTimeout(ok, 1500));
+      await new Promise(ok => setTimeout(ok, 2000));
     }
-    throw new Error((closed ? closed + '. ' : 'Payment not completed. ') + 'Your order is saved — tap Pay to try again.');
+    throw new Error((closed ? closed + '. ' : 'Payment not confirmed yet. If money left your account, this page updates by itself in a minute. ') + 'Otherwise tap Pay to try again.');
   }
 };
 

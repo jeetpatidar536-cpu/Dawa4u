@@ -1,6 +1,7 @@
-// Direct UPI payment box, shared by the customer app and the shop website.
-// The customer pays to our UPI ID (QR on desktop, "Pay with UPI app" on phones),
-// then types the 12-digit UPI reference (UTR). An admin confirms it in Admin → UPI payments.
+// Direct UPI payment box (used only while Cashfree is not set up), shared by the app and the shop website.
+// The customer pays to our UPI ID (QR on desktop, "Pay with UPI app" on phones) and taps "I have paid".
+// No reference number is asked. An admin matches the payment (amount + note "dawa4u <order id>")
+// and confirms it in Admin → UPI payments. With Cashfree set up, UPI is confirmed automatically instead.
 import qrcode from './vendor/qrcode.js';
 import { rupee, esc } from './api.js';
 
@@ -27,12 +28,12 @@ function qrSvg(text) {
   return qrCache[text];
 }
 
-/** HTML for an unpaid UPI order. Buttons: #upisubmit (data-id), #upicopy. Input: #upiref */
+/** HTML for an unpaid direct-UPI order. Buttons: #upisubmit (data-id), #upicopy */
 export function upiBox(o, s) {
   if (o.pay_status === 'verifying') {
     return `<div class="card stack" style="padding:20px;gap:8px;border:1.5px solid var(--gold)">
       <span class="b" style="font-size:17px">Checking your UPI payment</span>
-      <span class="s14 mute">We got your UPI reference ending <b>${esc(String(o.upi_ref || '').slice(-4))}</b>. Your order goes to the pharmacy as soon as we see ${rupee(o.total)} in our account — usually within a few minutes.</span></div>`;
+      <span class="s14 mute">Your order goes to the pharmacy as soon as we see ${rupee(o.total)} in our account — usually within a few minutes. You don't need to do anything else.</span></div>`;
   }
   if (!s.upi_id) {
     return `<div class="card stack" style="padding:20px;gap:8px"><span class="b">UPI payments are not set up yet</span>
@@ -46,12 +47,9 @@ export function upiBox(o, s) {
       <div style="width:184px;height:184px;background:#fff;border-radius:14px;padding:6px;flex:none" aria-label="UPI QR code">${qrSvg(uri)}</div>
       <div class="stack" style="gap:8px;flex:1 1 200px">
         ${isPhone() ? `<a class="btn" href="${esc(uri)}" style="text-decoration:none">Pay with UPI app</a>` : ''}
-        <span class="s13 mute">${isPhone() ? 'Or scan' : 'Scan'} the QR code with Google Pay, PhonePe, Paytm, BHIM or any UPI app. Pay exactly <b>${rupee(o.total)}</b>.</span>
+        <span class="s13 mute">${isPhone() ? 'Or scan' : 'Scan'} the QR code with Google Pay, PhonePe, Paytm, BHIM or any UPI app. Pay exactly <b>${rupee(o.total)}</b>, then come back here.</span>
       </div>
     </div>
-    <label class="field">After paying, enter the 12-digit UPI reference number (UTR)
-      <input id="upiref" inputmode="numeric" maxlength="14" placeholder="e.g. 431234567890" autocomplete="off"></label>
-    <span class="s12 mute">Find it in your UPI app under the payment details (called UTR, UPI Ref No. or Transaction ID).</span>
     <button class="btn" id="upisubmit" data-id="${esc(o.id)}">I have paid ${rupee(o.total)}</button>
   </div>`;
 }
