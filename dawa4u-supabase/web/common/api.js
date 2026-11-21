@@ -121,6 +121,10 @@ export const auth = {
   /** Sign-up sends a verification email; the link brings them back to this same app, logged in. */
   async signUp(email, password, name) {
     const d = await must(sb.auth.signUp({ email, password, options: { data: { name }, emailRedirectTo: location.origin + location.pathname } }));
+    // Supabase answers a sign-up for an email that already has an account with an empty identity list (and sends no email)
+    if (!d.session && d.user && Array.isArray(d.user.identities) && d.user.identities.length === 0) {
+      const e = new Error('This email already has a dawa4u account — log in instead, or use "Forgot password?".'); e.exists = true; throw e;
+    }
     return { session: d.session, needsVerify: !d.session };
   },
   resendVerify: email => must(sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname } })),
