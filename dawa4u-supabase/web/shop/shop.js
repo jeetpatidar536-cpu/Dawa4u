@@ -257,7 +257,11 @@ const pages = {
         <span class="s13 mute" id="pinhint">Search, click the map or use your location to drop a pin at your door.</span>
         <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:12px"><label class="field">Label<input id="alabel" placeholder="Home, Office…"></label><label class="field">Full address<input id="aline" placeholder="House no., street, area, landmark"></label><label class="field">PIN code<input id="apin" inputmode="numeric" maxlength="6"></label></div>
         <div class="row"><button class="btn" id="addaddr">Save address</button>${C.count() ? '<a href="#/cart" class="btn ghost">Back to cart</a>' : ''}</div></div>`
-      : `${pinBox()}<a class="btn ghost" href="#/login?next=%23%2Flocation" style="align-self:flex-start">Log in to save addresses</a>`}</div>`;
+      : `${pinBox()}
+        <div class="card stack" style="padding:24px;gap:12px"><span class="serif" style="font-size:20px">Don't know your PIN? Find it on the map</span>
+          <div id="pinmap" style="height:320px;border-radius:16px;overflow:hidden;background:var(--sand)"></div>
+          <span class="s13 mute" id="pinmaphint">Search, click the map or use your location — we'll fill in the PIN for you.</span></div>
+        <a class="btn ghost" href="#/login?next=%23%2Flocation" style="align-self:flex-start">Log in to save addresses</a>`}</div>`;
   },
   join(r) {
     const ph = r.q.get('as') !== 'rider';
@@ -298,6 +302,7 @@ function mountMaps(r) {
     if (live && live.id === o.id) { slot.replaceWith(live.node); live.ctl.then(c => { c.update(o); c.map.invalidateSize(); }); }
     else { if (live) live.ctl.then(c => c.stop()); live = { id: o.id, node: slot, ctl: trackingMap(slot, o, { onEta: (min, km) => { gpsEta[o.id] = { min, km }; } }) }; live.ctl.catch(() => {}); }
   }
+  pinFinder(document.getElementById('pinmap'));
   const pick = document.getElementById('addrmap');
   if (pick && !pick.dataset.ready) {
     pick.dataset.ready = '1'; picked = null;
@@ -330,6 +335,18 @@ function render() {
 }
 let lastName = '';
 addEventListener('hashchange', () => { pending = []; const n = route().name; if (n !== lastName) scrollTo(0, 0); lastName = n; render(); });
+/** Map for visitors: drop a pin (or use GPS / search) and the PIN box fills itself in. */
+function pinFinder(el) {
+  if (!el || el.dataset.ready) return;
+  el.dataset.ready = '1';
+  locationPicker(el, { onChange: p => {
+    const h = document.getElementById('pinmaphint'), i = document.getElementById('pinin');
+    if (/^[1-9]\d{5}$/.test(p.pin || '')) {
+      if (i) i.value = p.pin;
+      if (h) h.textContent = '📍 PIN ' + p.pin + (p.line ? ' · ' + p.line : '') + ' — tap Go to see medicines';
+    } else if (h) h.textContent = 'No PIN found exactly here — move the pin a little, or type your PIN above.';
+  } }).catch(() => { el.innerHTML = '<div class="s12 mute" style="padding:12px">Map could not load. You can still type your PIN.</div>'; });
+}
 C.on(() => {
   if (C.justVerified) { C.justVerified = null; toast('Pharmacist added your medicines to your cart'); }
   const a = document.activeElement;
