@@ -15,6 +15,12 @@ const isDark = () => !(window.d4uTheme && window.d4uTheme.current() === 'light')
 const MAPS = new Set();
 const paint = map => { try { map.getContainer().classList.toggle('d4u-dark-map', isDark() && !cfg.MAP_TILES); } catch { MAPS.delete(map); } };
 window.addEventListener('d4u-theme', () => MAPS.forEach(paint));
+(() => { // dark-mode map colouring, added once whatever loads first
+  if (document.getElementById('d4u-dark-map-css')) return;
+  const st = document.createElement('style'); st.id = 'd4u-dark-map-css';
+  st.textContent = '.d4u-dark-map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.55)}';
+  document.head.appendChild(st);
+})();
 const ATTR = cfg.MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 export const INDIA = [22.97, 78.65];
 const base = new URL('./vendor/leaflet/', import.meta.url).href;
@@ -28,7 +34,6 @@ export function loadMaps() {
     const st = document.createElement('style');
     st.textContent = `.d4u-pin{display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);color:#fff;font:800 12px Inter,system-ui,sans-serif}
       .d4u-pin.rider{transition:transform .9s linear}.leaflet-container{font-family:Inter,system-ui,sans-serif;background:var(--map-bg,#0E1A0B)}.leaflet-control-attribution{background:color-mix(in srgb,var(--card,#13230F) 80%,transparent)!important;color:var(--mute,#A7B39F)}.leaflet-control-attribution a{color:var(--em-text,#8DCB7B)}
-      .d4u-dark-map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.55)}
       .d4u-mapbtn{position:absolute;z-index:500;background:var(--card);border:0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.4);padding:8px 12px;font:700 13px Inter,system-ui,sans-serif;color:var(--em-text,#8DCB7B);background:var(--card,#13230F);cursor:pointer}`;
     document.head.appendChild(st);
     const s = document.createElement('script'); s.src = base + 'leaflet.js';
