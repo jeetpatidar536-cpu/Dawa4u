@@ -1,4 +1,4 @@
-// Starts a Cashfree payment (card / netbanking) for one of the caller's unpaid dawa4u orders.
+// Starts a Cashfree payment (UPI / card / netbanking) for one of the caller's unpaid dawa4u orders.
 // App flow: place_order() -> this function -> Cashfree checkout popup -> cashfree-verify
 import { admin, caller, cashfree, cfApi, cors, fail, json } from "../_shared/util.ts";
 
@@ -12,13 +12,13 @@ Deno.serve(async (req) => {
     const { data: o } = await db.from("orders").select("*").eq("id", order_id).eq("customer_id", user.id).maybeSingle();
     if (!o) return fail("Order not found", 404);
     if (o.status !== "pending_payment") return fail("This order is already paid or cancelled");
-    if (!["card", "netbanking"].includes(o.pay_method)) return fail("Use UPI or cash for this order");
+    if (!["upi", "card", "netbanking"].includes(o.pay_method)) return fail("Cash orders are paid to the rider");
 
     const cf = cashfree();
-    if (!cf.id || !cf.secret) return fail("Card and netbanking payments are not set up yet. Choose UPI or Cash on delivery.", 503);
+    if (!cf.id || !cf.secret) return fail("Online payments are not set up yet. Choose Cash on delivery.", 503);
 
     const phone = String(o.customer_phone || user.phone || "").replace(/\D/g, "").slice(-10);
-    if (phone.length !== 10) return fail("Add your mobile number to pay by card or netbanking");
+    if (phone.length !== 10) return fail("Add your mobile number to pay online");
 
     let [ok, body] = await cfApi("/orders", {
       method: "POST",
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         order_currency: "INR",
         order_note: `dawa4u order ${o.id}`,
         customer_details: { customer_id: user.id.replace(/-/g, ""), customer_phone: phone, customer_name: o.customer_name || undefined },
-        order_meta: { payment_methods: o.pay_method === "card" ? "cc,dc" : "nb" },
+        order_meta: { payment_methods: ({ upi: "upi", card: "cc,dc", netbanking: "nb" } as Record<string, string>)[o.pay_method] },
       },
     });
     if (!ok) {
