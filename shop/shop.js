@@ -27,6 +27,7 @@ function header() {
     <button class="loc hide-sm" data-go="#/location"><span style="font-size:11px;font-weight:700;color:var(--em-text)">${C.serviceable() ? 'DELIVERY IN 10–15 MIN' : 'DELIVER TO'}</span><span class="s13 b">${a ? esc(a.label) + ' · ' + esc(a.pin) : C.pin ? 'PIN ' + esc(C.pin) : 'Choose location'} ▾</span></button>
     <label class="searchbar">${ICON.search}<input id="q" placeholder="Search medicines, brands, health products" value="${esc(term)}" autocomplete="off"></label>
     <nav class="top">
+      ${window.d4uTheme.button('theme-btn')}
       <a href="#/orders" class="${r.name === 'orders' || r.name === 'track' ? 'on' : ''}">Orders</a>
       ${C.user ? `<a href="#/account" class="${r.name === 'account' ? 'on' : ''}">Account</a>` : `<a href="#/login" class="${r.name === 'login' ? 'on' : ''}">Login</a>`}
       <a href="#/cart" class="cartbtn">${ICON.cart}Cart${n ? ' · ' + n : ''}</a>

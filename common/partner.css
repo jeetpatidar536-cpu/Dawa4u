@@ -1,5 +1,5 @@
 /* dawa4u partner apps (pharmacy, rider, admin) — same ivory / emerald / gold look */
-:root{--em:#2C6420;--em-d:#24551A;--em-text:#8DCB7B;--on-mint:#CFE6C4;--gold:#E5CD82;--gold-d:#E5CD82;--on-gold:#1B1A0C;--ivory:#0B1708;--card:#13230F;--card2:#182B14;--line:#2A3F25;--ink:#F1ECD6;--mute:#A7B39F;--mint:#1C3318;--sand:#22301C;--amber:#F2A33A;--red:#F28B82;--warn-bg:#3A2E0E;--warn-ink:#F5C76B;--bad-bg:#3A1414;--bad-ink:#F2A0A0;--grey-bg:#22301E;--grey-ink:#D3DACD;color-scheme:dark}
+:root{--em:#2C6420;--em-d:#24551A;--em-text:#8DCB7B;--on-mint:#CFE6C4;--gold:#E5CD82;--gold-d:#E5CD82;--on-gold:#1B1A0C;--ivory:#0B1708;--card:#13230F;--card2:#182B14;--line:#2A3F25;--ink:#F1ECD6;--mute:#A7B39F;--mint:#1C3318;--sand:#22301C;--amber:#F2A33A;--red:#F28B82;--warn-bg:#3A2E0E;--warn-ink:#F5C76B;--bad-bg:#3A1414;--bad-ink:#F2A0A0;--grey-bg:#22301E;--grey-ink:#D3DACD;--page:#050B04;--rx-ink:#F3B27A;--rx-bg:#3A2410;--map-bg:#0E1A0B;--road:#1F3119;--toast:#26381F;--foot-bg:#070F05;--foot-ink:#C9D1C4;--foot-link:#D1D5DB;--danger-line:#7A2E2E;--pill-gold-bg:#3A3214;--pill-gold-ink:#E5CD82;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--ivory);font-family:Inter,system-ui,sans-serif;color:var(--ink);font-size:14px}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
@@ -14,20 +14,20 @@ input,select,textarea{font:inherit;color:var(--ink)}
 .btn:hover{background:var(--em-d)}.btn:disabled{background:#9CA3AF;cursor:not-allowed}
 .btn.ghost{background:transparent;border:1.5px solid var(--em-text);color:var(--em-text)}.btn.ghost:hover{background:var(--mint)}
 .btn.gold{background:var(--gold);color:var(--on-gold)}.btn.soft{background:var(--mint);color:var(--on-mint)}
-.btn.danger{background:var(--card);border:1.5px solid #7A2E2E;color:var(--red)}.btn.danger:hover{background:var(--bad-bg)}
+.btn.danger{background:var(--card);border:1.5px solid var(--danger-line);color:var(--red)}.btn.danger:hover{background:var(--bad-bg)}
 .btn.sm{height:34px;padding:0 12px;font-size:13px;border-radius:10px}.btn.full{width:100%}.btn.lg{height:54px;font-size:16px}
 .field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700}
 .field input,.field select,.field textarea,.inp{font-size:14px;font-weight:500;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card)}
 .field textarea{resize:vertical;min-height:70px}
 .inp:focus,.field input:focus,.field textarea:focus{outline:2px solid var(--mint);border-color:var(--em-text)}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--mint);color:var(--on-mint);white-space:nowrap}
-.pill.warn{background:var(--warn-bg);color:var(--warn-ink)}.pill.bad{background:var(--bad-bg);color:var(--bad-ink)}.pill.grey{background:var(--grey-bg);color:var(--grey-ink)}.pill.gold{background:#3A3214;color:#E5CD82}
+.pill.warn{background:var(--warn-bg);color:var(--warn-ink)}.pill.bad{background:var(--bad-bg);color:var(--bad-ink)}.pill.grey{background:var(--grey-bg);color:var(--grey-ink)}.pill.gold{background:var(--pill-gold-bg);color:var(--pill-gold-ink)}
 .hr{height:1px;background:var(--line)}
 table{border-collapse:collapse;width:100%}
 th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);padding:10px 12px;border-bottom:1px solid var(--line);background:var(--card2);position:sticky;top:0}
 td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr:hover td{background:var(--card2)}
-.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#26381F;color:var(--ink);border:1px solid var(--line);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50;max-width:90vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--toast);color:var(--ink);border:1px solid var(--line);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .spin{width:30px;height:30px;border:3px solid var(--mint);border-top-color:var(--em-text);border-radius:50%;animation:sp .8s linear infinite;margin:80px auto}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -66,3 +66,11 @@ tr:hover td{background:var(--card2)}
 @media(max-width:820px){.side{display:none}.content{padding:16px}.topbar{padding:12px 16px}.mnav{display:flex!important}}
 .mnav{display:none;gap:6px;overflow-x:auto;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line)}
 .mnav a{white-space:nowrap;padding:8px 12px;border-radius:999px;border:1px solid var(--line);text-decoration:none;color:var(--ink);font-weight:600;font-size:13px}.mnav a.on{background:var(--em);color:#fff;border-color:var(--em-text)}
+
+.theme-btn{height:38px;padding:0 12px;border-radius:10px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink);border:1px solid var(--line);background:var(--card);cursor:pointer}
+.theme-btn:hover{color:var(--em-text)}
+.rtop .theme-btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
+.side .logo{color:#FFFBEA}
+/* ---- light mode (common/theme.js sets data-theme) ---- */
+:root[data-theme=light]{--em:#15370D;--em-d:#0D2508;--em-text:#1F5216;--on-mint:#15370D;--gold:#E5CD82;--gold-d:#A8841F;--on-gold:#1B1A0C;--ivory:#FFFBEA;--card:#FFFFFF;--card2:#FFF8E1;--line:#EDE3C3;--ink:#111827;--mute:#4B5563;--mint:#E8EEE5;--sand:#FFF2B4;--amber:#D97706;--red:#B91C1C;--warn-bg:#FEF3C7;--warn-ink:#92400E;--bad-bg:#FEE2E2;--bad-ink:#991B1B;--grey-bg:#F3F4F6;--grey-ink:#374151;--page:#E9E3D8;--rx-ink:#9A3412;--rx-bg:#FFEDD5;--map-bg:#E8EEE5;--road:#FFFFFF;--toast:#FFFFFF;--foot-bg:#15370D;--foot-ink:#DCE6D9;--foot-link:#FFFFFF;--danger-line:#FCA5A5;--pill-gold-bg:#FFF2B4;--pill-gold-ink:#6B5414;color-scheme:light}
+:root[data-theme=light] .card{box-shadow:0 2px 8px rgba(17,24,39,.05)}

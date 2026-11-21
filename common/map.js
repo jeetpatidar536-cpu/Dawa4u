@@ -7,7 +7,11 @@ import { sb } from './api.js';
 
 const cfg = window.D4U_CONFIG || {};
 // Default: CARTO's free dark style (matches the dark app theme). Free for light use with attribution.
-const TILES = cfg.MAP_TILES || 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const LIGHT_TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+const tilesNow = () => cfg.MAP_TILES || (window.d4uTheme && window.d4uTheme.current() === 'light' ? LIGHT_TILES : DARK_TILES);
+const TILE_LAYERS = new Set();
+window.addEventListener('d4u-theme', () => TILE_LAYERS.forEach(t => { try { t.setUrl(tilesNow()); } catch { TILE_LAYERS.delete(t); } }));
 const ATTR = cfg.MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 export const INDIA = [22.97, 78.65];
 const base = new URL('./vendor/leaflet/', import.meta.url).href;
@@ -20,8 +24,8 @@ export function loadMaps() {
     const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'leaflet.css'; document.head.appendChild(css);
     const st = document.createElement('style');
     st.textContent = `.d4u-pin{display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);color:#fff;font:800 12px Inter,system-ui,sans-serif}
-      .d4u-pin.rider{transition:transform .9s linear}.leaflet-container{font-family:Inter,system-ui,sans-serif;background:#0E1A0B}.leaflet-control-attribution{background:rgba(11,23,8,.7)!important;color:#A7B39F}.leaflet-control-attribution a{color:#8DCB7B}
-      .d4u-mapbtn{position:absolute;z-index:500;background:var(--card);border:0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.4);padding:8px 12px;font:700 13px Inter,system-ui,sans-serif;color:#8DCB7B;background:#13230F;cursor:pointer}`;
+      .d4u-pin.rider{transition:transform .9s linear}.leaflet-container{font-family:Inter,system-ui,sans-serif;background:var(--map-bg,#0E1A0B)}.leaflet-control-attribution{background:color-mix(in srgb,var(--card,#13230F) 80%,transparent)!important;color:var(--mute,#A7B39F)}.leaflet-control-attribution a{color:var(--em-text,#8DCB7B)}
+      .d4u-mapbtn{position:absolute;z-index:500;background:var(--card);border:0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.4);padding:8px 12px;font:700 13px Inter,system-ui,sans-serif;color:var(--em-text,#8DCB7B);background:var(--card,#13230F);cursor:pointer}`;
     document.head.appendChild(st);
     const s = document.createElement('script'); s.src = base + 'leaflet.js';
     s.onload = () => res(window.L); s.onerror = () => rej(new Error('Map could not load'));
@@ -46,7 +50,7 @@ export async function makeMap(el, { center = INDIA, zoom = 5, interactive = true
   const L = await loadMaps();
   if (el._d4uMap) { el._d4uMap.remove(); }
   const map = L.map(el, { zoomControl: interactive, dragging: interactive, scrollWheelZoom: interactive, attributionControl: true }).setView(center, zoom);
-  L.tileLayer(TILES, { maxZoom: 19, attribution: ATTR }).addTo(map);
+  TILE_LAYERS.add(L.tileLayer(tilesNow(), { maxZoom: 19, attribution: ATTR }).addTo(map));
   el._d4uMap = map;
   setTimeout(() => map.invalidateSize(), 50);
   return { L, map };
@@ -92,7 +96,7 @@ export async function placeAt(lat, lng) {
 export async function locationPicker(el, { lat, lng, onChange, search = true } = {}) {
   el.style.position = 'relative';
   el.innerHTML = `<div class="d4u-mapbox" style="position:absolute;inset:0;border-radius:inherit"></div>
-    ${search ? `<input class="d4u-mapsearch" placeholder="Search area, street, landmark" style="position:absolute;z-index:500;top:10px;left:10px;right:10px;width:calc(100% - 20px);box-sizing:border-box;border:1px solid #2A3F25;border-radius:10px;padding:10px 12px;font:14px Inter,system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4);background:#13230F;color:#F1ECD6">
+    ${search ? `<input class="d4u-mapsearch" placeholder="Search area, street, landmark" style="position:absolute;z-index:500;top:10px;left:10px;right:10px;width:calc(100% - 20px);box-sizing:border-box;border:1px solid var(--line,#2A3F25);border-radius:10px;padding:10px 12px;font:14px Inter,system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4);background:var(--card,#13230F);color:var(--ink,#F1ECD6)">
     <div class="d4u-results" style="position:absolute;z-index:600;top:50px;left:10px;right:10px;background:var(--card);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.2);display:none;max-height:180px;overflow:auto;font:13px Inter,system-ui,sans-serif"></div>` : ''}
     <button type="button" class="d4u-mapbtn d4u-locate" style="bottom:12px;right:12px">◎ Use my location</button>`;
   const has = lat != null && lng != null;

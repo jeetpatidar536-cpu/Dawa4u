@@ -15,7 +15,7 @@ export async function busy(btn, fn) {
 export function authScreen(root, { title, subtitle, allowSignup, onDone }) {
   let mode = 'login';
   const draw = () => {
-    root.innerHTML = `<div class="auth"><div class="card">
+    root.innerHTML = `<div class="auth"><div style="position:fixed;top:16px;right:16px">${window.d4uTheme.button('theme-btn', true)}</div><div class="card">
       <span class="logo">${LOGO()}<span>dawa<span style="color:var(--gold-d)">4u</span></span></span>
       <div class="stack" style="gap:4px"><h1 class="serif" style="margin:0;font-size:26px;font-weight:600">${mode === 'signup' ? 'Create your account' : mode === 'reset' ? 'Reset password' : esc(title)}</h1><span class="mute">${esc(subtitle)}</span></div>
       ${mode === 'signup' ? '<label class="field">Your name<input id="a-name" autocomplete="name"></label>' : ''}
@@ -49,7 +49,7 @@ export function shell(root, { nav, active, title, right = '', body, who = '' }) 
       ${nav.map(n => `<a href="#/${n.id}" class="${n.id === active ? 'on' : ''}">${n.icon}${esc(n.label)}${n.count ? `<span class="n">${n.count}</span>` : ''}</a>`).join('')}
       <a href="#" id="signout" style="margin-top:auto">${ICON.logout}Log out</a><div class="foot">${esc(who)}</div></aside>
     <div class="main">
-      <div class="topbar"><h1 class="serif">${esc(title)}</h1><div class="row" style="margin-left:auto;gap:12px">${right}</div></div>
+      <div class="topbar"><h1 class="serif">${esc(title)}</h1><div class="row" style="margin-left:auto;gap:12px">${right}${window.d4uTheme.button('theme-btn', true)}</div></div>
       <nav class="mnav">${nav.map(n => `<a href="#/${n.id}" class="${n.id === active ? 'on' : ''}">${esc(n.label)}${n.count ? ' · ' + n.count : ''}</a>`).join('')}<a href="#" id="signout2">Log out</a></nav>
       <div class="content" id="content">${body}</div>
     </div></div>`;
