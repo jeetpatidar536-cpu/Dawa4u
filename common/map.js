@@ -6,13 +6,16 @@
 import { sb } from './api.js';
 
 const cfg = window.D4U_CONFIG || {};
-// Default: CARTO's free dark style (matches the dark app theme). Free for light use with attribution.
-const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-const LIGHT_TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-const tilesNow = () => cfg.MAP_TILES || (window.d4uTheme && window.d4uTheme.current() === 'light' ? LIGHT_TILES : DARK_TILES);
-const TILE_LAYERS = new Set();
-window.addEventListener('d4u-theme', () => TILE_LAYERS.forEach(t => { try { t.setUrl(tilesNow()); } catch { TILE_LAYERS.delete(t); } }));
-const ATTR = cfg.MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// Default: OpenStreetMap's own tiles (free, no API key — CARTO now needs a key and shows "API KEY REQUIRED").
+// In dark mode the same tiles are recoloured dark with a CSS filter, so one tile source serves both themes.
+// For heavy traffic, set MAP_TILES (+ MAP_ATTRIBUTION) in common/config.js to a keyed provider (MapTiler, Ola Maps…).
+const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const tilesNow = () => cfg.MAP_TILES || OSM_TILES;
+const isDark = () => !(window.d4uTheme && window.d4uTheme.current() === 'light');
+const MAPS = new Set();
+const paint = map => { try { map.getContainer().classList.toggle('d4u-dark-map', isDark() && !cfg.MAP_TILES); } catch { MAPS.delete(map); } };
+window.addEventListener('d4u-theme', () => MAPS.forEach(paint));
+const ATTR = cfg.MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 export const INDIA = [22.97, 78.65];
 const base = new URL('./vendor/leaflet/', import.meta.url).href;
 
@@ -25,6 +28,7 @@ export function loadMaps() {
     const st = document.createElement('style');
     st.textContent = `.d4u-pin{display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);color:#fff;font:800 12px Inter,system-ui,sans-serif}
       .d4u-pin.rider{transition:transform .9s linear}.leaflet-container{font-family:Inter,system-ui,sans-serif;background:var(--map-bg,#0E1A0B)}.leaflet-control-attribution{background:color-mix(in srgb,var(--card,#13230F) 80%,transparent)!important;color:var(--mute,#A7B39F)}.leaflet-control-attribution a{color:var(--em-text,#8DCB7B)}
+      .d4u-dark-map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.55)}
       .d4u-mapbtn{position:absolute;z-index:500;background:var(--card);border:0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.4);padding:8px 12px;font:700 13px Inter,system-ui,sans-serif;color:var(--em-text,#8DCB7B);background:var(--card,#13230F);cursor:pointer}`;
     document.head.appendChild(st);
     const s = document.createElement('script'); s.src = base + 'leaflet.js';
@@ -50,7 +54,8 @@ export async function makeMap(el, { center = INDIA, zoom = 5, interactive = true
   const L = await loadMaps();
   if (el._d4uMap) { el._d4uMap.remove(); }
   const map = L.map(el, { zoomControl: interactive, dragging: interactive, scrollWheelZoom: interactive, attributionControl: true }).setView(center, zoom);
-  TILE_LAYERS.add(L.tileLayer(tilesNow(), { maxZoom: 19, attribution: ATTR }).addTo(map));
+  L.tileLayer(tilesNow(), { maxZoom: 19, attribution: ATTR }).addTo(map);
+  MAPS.add(map); paint(map);
   el._d4uMap = map;
   setTimeout(() => map.invalidateSize(), 50);
   return { L, map };
