@@ -3,7 +3,7 @@ Theme Name: dawa4u
 Theme URI: https://dawa4u.in/
 Author: dawa4u
 Description: Dark green and gold theme for dawa4u — medicines at your door in 15 minutes. Creates the Home, dawaPass, Partners, About, Help and Refunds pages on first use, and links to the dawa4u ordering apps.
-Version: 1.0.0
+Version: 1.0.1
 Requires at least: 6.3
 Requires PHP: 7.4
 License: GPLv2 or later
@@ -58,7 +58,8 @@ img { max-width: 100%; height: auto; }
 .d4-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 800; font-size: 21px; letter-spacing: -.01em; }
 .d4-brand:hover { color: var(--ink); }
 .d4-brand b { color: var(--em-text); font-weight: 800; }
-.d4-nav { margin-left: auto; }
+.d4-nav { margin-left: auto; order: 2; }
+.d4-cta { order: 3; }
 .d4-nav ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
 .d4-nav a { display: block; padding: 8px 12px; border-radius: 10px; color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 500; }
 .d4-nav a:hover, .d4-nav .current-menu-item > a { background: var(--card); color: var(--em-text); }
@@ -68,8 +69,10 @@ img { max-width: 100%; height: auto; }
 
 @media (max-width: 860px) {
   .d4-header__in { flex-wrap: wrap; gap: 12px; }
-  .d4-menu-btn { display: inline-flex; margin-left: auto; width: 42px; height: 42px; align-items: center; justify-content: center; border-radius: 12px; background: var(--card); cursor: pointer; color: var(--ink); }
-  .d4-cta { height: 42px; padding: 0 14px; }
+  .d4-menu-btn { display: inline-flex; width: 42px; height: 42px; align-items: center; justify-content: center; border-radius: 12px; background: var(--card); cursor: pointer; color: var(--ink); }
+  .d4-cta { height: 42px; padding: 0 14px; order: 1; }
+  .d4-menu-btn { order: 2; margin-left: 8px; }
+  .d4-brand { margin-right: auto; }
   .d4-nav { order: 5; width: 100%; margin: 0; display: none; }
   .d4-menu-toggle:checked ~ .d4-nav { display: block; }
   .d4-nav ul { flex-direction: column; padding-bottom: 8px; }
@@ -118,7 +121,9 @@ img { max-width: 100%; height: auto; }
   border: 1px solid var(--line); border-radius: 28px; padding: clamp(28px, 5vw, 56px);
 }
 .d4-eyebrow { font-size: 13px !important; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--em-text) !important; margin-bottom: 14px !important; }
-.d4-lead { font-size: 18px; max-width: 640px; }
+.d4-lead { font-size: 18px; max-width: 640px; margin-left: 0 !important; }
+.d4-hero > *, .d4-pass > *, .d4-band > * { margin-left: 0 !important; }
+.d4-pass > .d4-eyebrow { margin-bottom: 4px !important; }
 .d4-hero h1 { margin-bottom: 16px; }
 
 .d4-card, .d4-features .wp-block-column, .d4-steps .wp-block-column {
