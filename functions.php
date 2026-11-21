@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /** Where the ordering apps live. Change this one line if the apps move. */
-define( 'DAWA4U_APPS', 'https://jeetpatidar536-cpu.github.io/Dawa4u/' );
+define( 'DAWA4U_APPS', 'https://dawa4u.in/' ); // shop/, app/, pharmacy/, rider/, admin/ live next to WordPress
 
 function dawa4u_app( $path = '' ) {
 	return esc_url( DAWA4U_APPS . ltrim( $path, '/' ) );
@@ -335,6 +335,11 @@ function dawa4u_setup_site() {
 }
 add_action( 'after_switch_theme', 'dawa4u_setup_site' );
 add_action( 'init', 'dawa4u_setup_site', 99 );
+
+/** Pages made before the apps moved to dawa4u.in still hold the old github.io links: point them here. */
+add_filter( 'the_content', function ( $html ) {
+	return str_replace( 'https://jeetpatidar536-cpu.github.io/Dawa4u/', DAWA4U_APPS, $html );
+}, 5 );
 
 /** Fallback menu if none is assigned. */
 function dawa4u_fallback_menu() {
