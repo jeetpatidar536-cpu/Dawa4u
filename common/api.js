@@ -140,32 +140,38 @@ export const shop = {
     p_items: items, p_address_id: addressId, p_pay_method: payMethod, p_prescription_id: prescriptionId || null, p_buy_pass: !!buyPass
   })),
 
-  /** Take payment for an unpaid online order: Razorpay if set up, else test mode. */
+  /** UPI (direct to our UPI ID): the customer pays from the order page and sends the 12-digit reference. */
+  submitUpi: (id, ref) => must(sb.rpc('submit_upi_ref', { p_order_id: id, p_ref: ref })),
+
+  /** Take payment for an unpaid order.
+   *  UPI  -> nothing to do here; the order page shows the QR / UPI app button.
+   *  Card / netbanking -> Cashfree popup, then the server checks with Cashfree.
+   *  Test mode (settings.payments_test_mode) lets orders through while payments are not set up. */
   async pay(order, settings) {
     if (order.pay_method === 'cod' || order.status !== 'pending_payment') return order;
-    const r = await sb.functions.invoke('razorpay-order', { body: { order_id: order.id } });
-    let rz = r.data;
-    if (r.error || !rz || rz.error) {
-      const msg = rz?.error || (await r.error?.context?.json?.().then(j => j.error).catch(() => null)) || r.error?.message || '';
-      if (settings && settings.payments_test_mode && (/not set up/i.test(msg) || /Failed to send|FunctionsFetchError|404/i.test(msg + (r.error?.name || '')))) {
-        return must(sb.rpc('test_pay', { p_order_id: order.id }));
-      }
+    const testPay = () => must(sb.rpc('test_pay', { p_order_id: order.id }));
+    if (order.pay_method === 'upi') return settings && !settings.upi_id && settings.payments_test_mode ? testPay() : order;
+
+    const r = await sb.functions.invoke('cashfree-order', { body: { order_id: order.id } });
+    const cf = r.data;
+    if (r.error || !cf || cf.error) {
+      const msg = cf?.error || (await r.error?.context?.json?.().then(j => j.error).catch(() => null)) || r.error?.message || '';
+      if (settings && settings.payments_test_mode && (/not set up/i.test(msg) || /Failed to send|FunctionsFetchError|404/i.test(msg + (r.error?.name || '')))) return testPay();
       throw new Error(msg || 'Could not start payment');
     }
-    await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-    const resp = await new Promise((resolve, reject) => {
-      const rp = new window.Razorpay({
-        key: rz.key_id, order_id: rz.razorpay_order_id, amount: rz.amount, currency: 'INR', name: 'dawa4u',
-        description: 'Order ' + order.id, prefill: { contact: rz.phone || '', name: rz.name || '' },
-        theme: { color: '#15370D' }, handler: resolve,
-        modal: { ondismiss: () => reject(new Error('Payment cancelled. Your order is saved — tap Pay to try again.')) }
-      });
-      rp.on('payment.failed', e => reject(new Error(e.error?.description || 'Payment failed')));
-      rp.open();
-    });
-    const v = await sb.functions.invoke('razorpay-verify', { body: { order_id: order.id, ...resp } });
-    if (v.error || v.data?.error) throw new Error(v.data?.error || 'Payment received but not verified yet. It will update in a minute.');
-    return v.data.order;
+    let closed = null;
+    if (!cf.already_paid) {
+      await loadScript('https://sdk.cashfree.com/js/v3/cashfree.js');
+      const cashfree = window.Cashfree({ mode: cf.mode });
+      const res = await cashfree.checkout({ paymentSessionId: cf.payment_session_id, redirectTarget: '_modal' });
+      if (res && res.error) closed = res.error.message;
+    }
+    for (let i = 0; i < (closed ? 1 : 4); i++) {
+      const v = await sb.functions.invoke('cashfree-verify', { body: { order_id: order.id } });
+      if (v.data && v.data.paid) return v.data.order;
+      await new Promise(ok => setTimeout(ok, 1500));
+    }
+    throw new Error((closed ? closed + '. ' : 'Payment not completed. ') + 'Your order is saved — tap Pay to try again.');
   }
 };
 
@@ -244,6 +250,8 @@ export const adminApi = {
   },
   refunds: () => must(sb.from('orders').select('*').eq('pay_status', 'refund_due').order('cancelled_at', { ascending: false })),
   cancel: (id, reason) => must(sb.rpc('admin_cancel_order', { p_order_id: id, p_reason: reason })),
+  upiToCheck: () => must(sb.from('orders').select('*').eq('pay_method', 'upi').eq('pay_status', 'verifying').order('upi_submitted_at')),
+  upiReview: (id, ok, note) => must(sb.rpc('admin_upi_review', { p_order_id: id, p_ok: ok, p_note: note || null })),
   update: (table, id, patch) => must(sb.rpc('admin_update', { p_table: table, p_id: String(id), p_patch: patch })),
   setPartner: (kind, id, status) => must(sb.rpc('admin_set_partner', { p_kind: kind, p_id: id, p_status: status })),
   pharmacies: () => must(sb.from('pharmacies').select('*').order('created_at', { ascending: false })),
