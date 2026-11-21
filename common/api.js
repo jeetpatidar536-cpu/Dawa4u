@@ -10,7 +10,17 @@ if (!cfg.SUPABASE_URL || cfg.SUPABASE_URL.includes('YOUR-PROJECT')) {
     document.body.innerHTML = '<div style="font:16px system-ui;padding:40px;max-width:560px;margin:auto"><h2>dawa4u is not connected yet</h2><p>Open <b>web/common/config.js</b> and paste your Supabase project URL and anon key. See README → "Set up Supabase".</p></div>';
   });
 }
+/** Came back from an email link? 'verified' (sign-up link worked), 'expired' (old or used link), or null.
+ *  Read before the Supabase client takes the tokens out of the address bar. */
+export const authLinkState = (() => {
+  const h = location.hash + '&' + location.search;
+  if (/error_code=otp_expired|error=access_denied/.test(h)) return 'expired';
+  if (/type=signup|type=email(?!_change)/.test(h)) return 'verified';
+  return null;
+})();
 export const sb = createClient(cfg.SUPABASE_URL || 'http://localhost', cfg.SUPABASE_ANON_KEY || 'x', cfg.CLIENT_OPTIONS || {});
+// an expired link leaves "#error=..." in the address; clear it so the app's own pages work
+if (authLinkState === 'expired') history.replaceState(null, '', location.pathname + location.search.replace(/[?&]error[^#]*/, ''));
 
 // ---------------------------------------------------------------- small helpers
 export const rupee = n => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
@@ -99,12 +109,21 @@ export const auth = {
     return d.session;
   },
   /** Email + password (pharmacies and admin) */
-  async signIn(email, password) { return (await must(sb.auth.signInWithPassword({ email, password }))).session; },
-  async signUp(email, password, name) {
-    const d = await must(sb.auth.signUp({ email, password, options: { data: { name } } }));
-    if (!d.session) throw new Error('Check your email and click the confirmation link, then log in.');
-    return d.session;
+  async signIn(email, password) {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      const e = new Error(/not confirmed/i.test(error.message) ? 'Please verify your email first — open the link we sent to ' + email + '.' : errText(error));
+      e.unverified = /not confirmed/i.test(error.message);
+      throw e;
+    }
+    return data.session;
   },
+  /** Sign-up sends a verification email; the link brings them back to this same app, logged in. */
+  async signUp(email, password, name) {
+    const d = await must(sb.auth.signUp({ email, password, options: { data: { name }, emailRedirectTo: location.origin + location.pathname } }));
+    return { session: d.session, needsVerify: !d.session };
+  },
+  resendVerify: email => must(sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname } })),
   async resetPassword(email) { await must(sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split('#')[0] })); },
   async signOut() { await sb.auth.signOut(); }
 };
