@@ -43,7 +43,9 @@ jobs:
           cp app/build/outputs/bundle/release/app-release.aab $GITHUB_WORKSPACE/out/dawa4u-${{ matrix.app }}-$V-unsigned.aab
           cp app/build/outputs/apk/debug/app-debug.apk $GITHUB_WORKSPACE/out/dawa4u-${{ matrix.app }}-$V-test.apk
       - uses: actions/upload-artifact@v4
-        with: { name: android-${{ matrix.app }}, path: out/* }
+        with:
+          name: android-${{ matrix.app }}
+          path: out/*
 
   windows:
     runs-on: windows-latest
