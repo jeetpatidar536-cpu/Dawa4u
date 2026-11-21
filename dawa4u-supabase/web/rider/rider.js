@@ -73,8 +73,8 @@ async function refresh(first) {
 }
 
 function frame(body, title) {
-  $('#app').innerHTML = `<header class="rtop"><span class="logo" style="color:var(--ink);font-size:19px">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span class="s12" style="opacity:.8;margin-left:6px;letter-spacing:0">Rider</span></span>
-    ${title || ''}</header><main class="rmain">${body}</main>
+  $('#app').innerHTML = `<header class="rtop"><span class="logo" style="color:#FFFBEA;font-size:19px">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span class="s12" style="opacity:.8;margin-left:6px;letter-spacing:0">Rider</span></span>
+    <span class="row" style="gap:8px">${title || ''}${window.d4uTheme.button('theme-btn')}</span></header><main class="rmain">${body}</main>
     ${S.r && S.r.status === 'active' ? `<nav class="rtabs">${[['home', ICON.orders, t('home')], ['earn', ICON.rupee, t('earn')], ['me', ICON.user, t('me')]].map(([id, ic, l]) => `<button class="${S.tab === id ? 'on' : ''}" data-tab="${id}">${ic}<span>${l}</span></button>`).join('')}</nav>` : ''}`;
 }
 function loginScreen() {

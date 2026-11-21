@@ -54,10 +54,10 @@ const screens = {
       <div class="hero">
         <div class="row" style="justify-content:space-between">
           <div class="stack" style="gap:2px">
-            <span class="row" style="gap:4px;font-size:18px;font-weight:800;letter-spacing:-.05em;color:var(--ink)">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span style="font-size:12px;font-weight:600;letter-spacing:0;opacity:.9;margin-left:6px">${C.serviceable() ? '· delivering in 15 min' : ''}</span></span>
+            <span class="row" style="gap:4px;font-size:18px;font-weight:800;letter-spacing:-.05em;color:#FFFBEA">${LOGO('#FFFBEA', '#E5CD82', 24)}<span>dawa<span style="color:var(--gold)">4u</span></span><span style="font-size:12px;font-weight:600;letter-spacing:0;opacity:.9;margin-left:6px">${C.serviceable() ? '· delivering in 15 min' : ''}</span></span>
             <button data-go="#/location" style="color:#fff;font-size:16px;font-weight:700;min-height:32px;text-align:left">${a ? esc(a.label) + ' · ' + esc(a.pin) : C.pin ? 'PIN ' + esc(C.pin) : 'Choose location'} ▾</button>
           </div>
-          <button class="icon-btn" data-go="#/account" aria-label="Account" style="background:rgba(255,255,255,.16);color:#fff">${ICON.user}</button>
+          <div class="row" style="gap:8px">${window.d4uTheme.button('icon-btn theme-btn')}<button class="icon-btn" data-go="#/account" aria-label="Account" style="background:rgba(255,255,255,.16);color:#fff">${ICON.user}</button></div>
         </div>
         <button class="searchbox" data-go="#/search">${ICON.search} Search medicines, brands, health products</button>
       </div>
