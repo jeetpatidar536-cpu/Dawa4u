@@ -38,7 +38,7 @@ const passCard = () => C.hasPass()
 const needLogin = (title, next) => `${topBar(title)}<div class="scroll"><div class="empty"><span style="color:var(--em-text)">${ICON.user}</span><span class="serif" style="font-size:20px">Log in to continue</span><span class="s13 mute">Use your mobile number — we will send you a code.</span><button class="btn" data-go="#/login?next=${encodeURIComponent(next)}" style="width:auto;padding:0 24px">Log in</button></div></div>`;
 const pinGate = () => `<div class="card stack" style="padding:18px;gap:12px"><span class="serif" style="font-size:18px;font-weight:600">Where should we deliver?</span>
   <span class="s13 mute">Enter your PIN code to see medicines from the pharmacy nearest you.</span>
-  <div class="row"><input id="pinin" inputmode="numeric" maxlength="6" placeholder="6-digit PIN" style="flex:1;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:12px 14px"><button class="btn" id="setpin" style="width:auto;padding:0 20px">Go</button></div></div>`;
+  <div class="row"><input id="pinin" inputmode="numeric" maxlength="6" placeholder="6-digit PIN" style="flex:1;min-width:0;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:12px 14px"><button class="btn" id="setpin" style="width:auto;padding:0 20px">Go</button></div></div>`;
 const activeBanner = () => { const o = C.liveOrder(); if (!o) return ''; const t = C.track(o);
   return `<button class="card row" data-go="#/track/${o.id}" style="padding:14px 16px;text-align:left;background:var(--warn-bg);border-color:#5A4614">
     <span style="width:40px;height:40px;border-radius:20px;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ICON.bike}</span>
@@ -227,7 +227,11 @@ const screens = {
         <label class="field">Full address<input id="aline" placeholder="House no., street, area, landmark"></label>
         <label class="field">PIN code<input id="apin" inputmode="numeric" maxlength="6" placeholder="6 digits"></label>
         <button class="btn ghost" id="addaddr">Save address</button></div>`
-      : `${pinGate()}<button class="btn ghost" data-go="#/login?next=%23%2Flocation">Log in to save addresses</button>`}
+      : `${pinGate()}
+        <div class="card stack" style="padding:16px;gap:10px"><span class="s14 b">Don't know your PIN? Find it on the map</span>
+          <div id="pinmap" style="height:260px;border-radius:14px;overflow:hidden;background:var(--sand)"></div>
+          <span class="s12 mute" id="pinmaphint">Tap the map, search, or use your location — we'll fill in the PIN for you.</span></div>
+        <button class="btn ghost" data-go="#/login?next=%23%2Flocation">Log in to save addresses</button>`}
       </div></div><div class="foot"><button class="btn" data-back="#/">Done</button></div>`;
   },
   pass() {
@@ -297,6 +301,7 @@ function mountMaps(name, id) {
       live.ctl.catch(() => {});
     }
   }
+  pinFinder(document.getElementById('pinmap'));
   const pick = document.getElementById('addrmap');
   if (pick && !pick.dataset.ready) {
     pick.dataset.ready = '1'; picked = null;
@@ -308,6 +313,18 @@ function mountMaps(name, id) {
       const h = document.getElementById('pinhint'); if (h) h.textContent = '📍 Pin set — the rider will come here';
     } }).catch(() => { pick.innerHTML = '<div class="s12 mute" style="padding:12px">Map could not load. You can still type your address.</div>'; });
   }
+}
+/** Map for visitors: drop a pin (or use GPS / search) and the PIN box fills itself in. */
+function pinFinder(el) {
+  if (!el || el.dataset.ready) return;
+  el.dataset.ready = '1';
+  locationPicker(el, { onChange: p => {
+    const h = document.getElementById('pinmaphint'), i = document.getElementById('pinin');
+    if (/^[1-9]\d{5}$/.test(p.pin || '')) {
+      if (i) i.value = p.pin;
+      if (h) h.textContent = '📍 PIN ' + p.pin + (p.line ? ' · ' + p.line : '') + ' — tap Go to see medicines';
+    } else if (h) h.textContent = 'No PIN found exactly here — move the pin a little, or type your PIN above.';
+  } }).catch(() => { el.innerHTML = '<div class="s12 mute" style="padding:12px">Map could not load. You can still type your PIN.</div>'; });
 }
 C.on(() => {
   if (C.justVerified) { C.justVerified = null; toast('Pharmacist added your medicines to the cart'); }
