@@ -64,7 +64,9 @@ export function authScreen(root, { title, subtitle, allowSignup, onDone }) {
       if (mode === 'reset') { await auth.resetPassword(email); toast('Check your email for the reset link'); mode = 'login'; return draw(); }
       if (pass.length < 8) throw new Error('Password must be at least 8 characters');
       if (mode === 'signup') {
-        const r = await auth.signUp(email, pass, $('#a-name').value.trim());
+        let r;
+        try { r = await auth.signUp(email, pass, $('#a-name').value.trim()); }
+        catch (e) { if (e.exists) { vEmail = email; mode = 'login'; note = ''; draw(); toast(e.message, 5000); return; } throw e; }
         if (r.needsVerify) { vEmail = email; mode = 'verify'; note = ''; startCooldown(); return draw(); }
         return onDone();
       }
