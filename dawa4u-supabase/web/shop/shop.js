@@ -3,6 +3,7 @@
 // Pages: home · search · rx · cart · track · orders · account · login · location · join · about · help
 // =====================================================================
 import { auth, me, shop, rupee, esc, when, toast, CATS, RX_RULES, PAYS, payLabel, STATUS, LOGO, ICON, readImages } from '../common/api.js';
+import { upiBox } from '../common/upi.js';
 import { C } from '../common/customer.js';
 import { locationPicker, trackingMap } from '../common/map.js';
 
@@ -140,7 +141,7 @@ const pages = {
           </section>
           <section class="card stack" style="padding:24px;gap:14px"><span class="serif" style="font-size:20px">Payment</span>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">${PAYS.map(p => `<label class="opt ${C.cart.pay === p.id ? 'on' : ''}" style="align-items:center;font-size:14px;font-weight:700"><input type="radio" name="pay" value="${p.id}" ${C.cart.pay === p.id ? 'checked' : ''} style="margin:0">${p.label}</label>`).join('')}</div>
-            <span class="s12 mute">Secure payments by Razorpay · UPI, cards and netbanking${C.settings.payments_test_mode ? ' · <b>test mode — no money moves</b>' : ''}</span></section>
+            <span class="s12 mute">UPI straight to dawa4u · cards &amp; netbanking secured by Cashfree${C.settings.payments_test_mode ? ' · <b>test mode — no money moves</b>' : ''}</span></section>
         </div>
         <aside class="stack" style="flex:2 1 340px;gap:16px;position:sticky;top:96px">
           ${C.hasPass() ? `<span class="ok" style="border-radius:16px;padding:14px 18px">${ICON.check} dawaPass applied — ${C.settings.pass_off}% off and free delivery</span>`
@@ -178,7 +179,8 @@ const pages = {
         ${o.status === 'placed' || o.status === 'pending_payment' ? `<button class="btn ghost" id="cancelorder" data-id="${o.id}" style="align-self:flex-start;margin-top:8px">Cancel order</button>` : ''}</div>`;
     const head = pageHead('Order ' + o.id, `${when(o.created_at)} · to ${esc(o.address_label)}, ${esc(o.address_line)} · <span class="status ${o.status}">${STATUS[o.status]}</span>`);
     if (o.status === 'pending_payment' || o.status === 'cancelled') return `<div class="wrap stack" style="padding-top:40px;gap:24px">${head}
-      <div class="${o.status === 'cancelled' ? 'warn' : 'card'}" style="padding:20px 24px">${o.status === 'cancelled' ? esc(o.cancel_reason || 'Cancelled') + (o.pay_status === 'refund_due' ? ' · Your refund is on its way (3–5 working days).' : '') : `Complete the payment to send this order to the pharmacy. <button class="btn" id="payagain" data-id="${o.id}" style="margin-left:12px">Pay ${rupee(o.total)}</button>`}</div>
+      <div class="${o.status === 'cancelled' ? 'warn' : 'card'}" style="padding:20px 24px">${o.status === 'cancelled' ? esc(o.cancel_reason || 'Cancelled') + (o.pay_status === 'refund_due' ? ' · Your refund is on its way (3–5 working days).' : '') : o.pay_method === 'upi' ? (o.pay_status === 'verifying' ? 'Thanks — we are checking your UPI payment.' : `Pay by UPI below to send this order to the pharmacy. Unpaid orders are cancelled after ${C.settings.payment_minutes} minutes.`) + ` <button class="btn ghost sm" id="cancelorder" data-id="${o.id}" style="margin-left:12px">Cancel order</button>` : `Complete the payment to send this order to the pharmacy. <button class="btn" id="payagain" data-id="${o.id}" style="margin-left:12px">Pay ${rupee(o.total)}</button>`}</div>
+      ${o.status === 'pending_payment' && o.pay_method === 'upi' ? `<div style="max-width:560px">${upiBox(o, C.settings)}</div>` : ''}
       <div style="display:flex;flex-wrap:wrap;gap:24px">${items}</div></div>`;
     return `<div class="wrap stack" style="padding-top:40px;gap:24px">${head}
       <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
@@ -347,10 +349,12 @@ document.addEventListener('click', async e => {
       if (!C.user) return go('#/login?next=' + encodeURIComponent('#/cart'));
       if (!C.address()) return go('#/location');
       return busy(el, async () => {
-        try { const o = await C.checkout(); toast(o.pay_method === 'cod' ? 'Order placed' : 'Payment successful'); location.replace('#/track/' + o.id); }
+        try { const o = await C.checkout(); toast(o.status === 'pending_payment' ? 'Order saved — pay by UPI to confirm it' : o.pay_method === 'cod' ? 'Order placed' : 'Payment successful'); location.replace('#/track/' + o.id); }
         catch (err) { if (err.order) location.replace('#/track/' + err.order.id); throw err; }
       }).catch(() => {});
     case 'payagain': return busy(el, async () => { await C.payAgain(C.orders.find(x => x.id === el.dataset.id)); toast('Payment successful'); render(); }).catch(() => {});
+    case 'upisubmit': return busy(el, async () => { await shop.submitUpi(el.dataset.id, ($('#upiref') || {}).value); await C.loadOrders(); toast('Thanks! We are checking your payment'); render(); }).catch(() => {});
+    case 'upicopy': try { await navigator.clipboard.writeText(C.settings.upi_id); toast('UPI ID copied'); } catch { toast(C.settings.upi_id); } return;
     case 'cancelorder': if (!confirm('Cancel this order?')) return; return busy(el, async () => { await C.cancel(el.dataset.id); toast('Order cancelled'); render(); }).catch(() => {});
     case 'logout': await auth.signOut(); toast('Logged out'); return go('#/');
     case 'sendotp': { const p = $('#phone').value.replace(/\D/g, ''); return busy(el, async () => { await auth.sendOtp(p); go('#/login?' + new URLSearchParams({ phone: p, next: q.get('next') || '#/' })); }).catch(() => {}); }

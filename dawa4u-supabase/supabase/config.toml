@@ -21,3 +21,6 @@ verify_jwt = false
 verify_jwt = false
 [functions.sms-hook]
 verify_jwt = false
+
+[functions.cashfree-webhook]
+verify_jwt = false

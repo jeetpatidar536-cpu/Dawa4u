@@ -39,3 +39,54 @@ export function safeEqual(a: string, b: string) {
 }
 
 export const razorpayKeys = () => ({ id: Deno.env.get("RAZORPAY_KEY_ID") ?? "", secret: Deno.env.get("RAZORPAY_KEY_SECRET") ?? "" });
+
+// ---------------------------------------------------------------- Cashfree (cards & netbanking)
+// Secrets: CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV ("sandbox" or "production")
+export const cashfree = () => {
+  const env = (Deno.env.get("CASHFREE_ENV") ?? "sandbox").toLowerCase() === "production" ? "production" : "sandbox";
+  return {
+    id: Deno.env.get("CASHFREE_APP_ID") ?? "",
+    secret: Deno.env.get("CASHFREE_SECRET_KEY") ?? "",
+    env,
+    base: env === "production" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg",
+  };
+};
+
+/** Call the Cashfree PG API. Returns [ok, body]. */
+export async function cfApi(path: string, init: { method?: string; body?: unknown } = {}): Promise<[boolean, any]> {
+  const cf = cashfree();
+  const res = await fetch(cf.base + path, {
+    method: init.method ?? "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-version": "2025-01-01",
+      "x-client-id": cf.id,
+      "x-client-secret": cf.secret,
+    },
+    body: init.body ? JSON.stringify(init.body) : undefined,
+  });
+  const body = await res.json().catch(() => ({}));
+  return [res.ok, body];
+}
+
+/** Ask Cashfree whether an order has a successful payment; if so, mark it paid. Never trusts the browser. */
+export async function cfSettle(orderId: string) {
+  const [ok, payments] = await cfApi(`/orders/${encodeURIComponent(orderId)}/payments`);
+  if (!ok || !Array.isArray(payments)) return { paid: false, error: payments?.message ?? "Could not check payment" };
+  const p = payments.find((x: any) => x.payment_status === "SUCCESS");
+  if (!p) return { paid: false };
+  const { data, error } = await admin().rpc("mark_paid", {
+    p_order_id: orderId, p_rz_order: orderId, p_rz_payment: String(p.cf_payment_id),
+    p_amount_paise: Math.round(Number(p.payment_amount) * 100),
+  });
+  if (error) return { paid: false, error: error.message };
+  return { paid: true, order: data };
+}
+
+/** Base64 HMAC-SHA256, as used by Cashfree webhook signatures (timestamp + raw body). */
+export async function hmacB64(secret: string, message: string) {
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(message)));
+  let s = ""; for (const b of sig) s += String.fromCharCode(b);
+  return btoa(s);
+}

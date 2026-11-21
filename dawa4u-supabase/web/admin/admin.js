@@ -1,6 +1,6 @@
 // =====================================================================
 // dawa4u ADMIN dashboard (owner, desktop). Everything in one place:
-// Overview · Orders · Refunds · Pharmacies · Riders & payouts · Customers · Medicines · dawaPass · Leads · Support · Settings
+// Overview · Orders · UPI payments · Refunds · Pharmacies · Riders & payouts · Customers · Medicines · dawaPass · Leads · Support · Settings
 // =====================================================================
 import { auth, me, adminApi as api, rupee, esc, when, timeAgo, toast, ICON, CATS, STATUS, payLabel, live, getSettings, errText } from '../common/api.js';
 import { $, $$, busy, authScreen, shell, toCsv, download } from '../common/partner.js';
@@ -20,7 +20,7 @@ async function boot() {
     $('#lo').onclick = async () => { await auth.signOut(); boot(); }; return;
   }
   S.stats = await api.stats();
-  live('orders', async () => { S.stats = await api.stats().catch(() => S.stats); const p = page(); if (['overview', 'orders'].includes(p) && !typing()) render(); }, { poll: 15000 });
+  live('orders', async () => { S.stats = await api.stats().catch(() => S.stats); const p = page(); if (['overview', 'orders', 'upi'].includes(p) && !typing()) render(); }, { poll: 15000 });
   addEventListener('hashchange', render);
   render();
 }
@@ -35,7 +35,8 @@ const pages = {
     return `<div class="tiles">
       ${[['Orders today', s.orders_today], ['Sales today', rupee(s.gmv_today)], ['Live orders', s.live], ['Delivered today', s.delivered_today], ['Avg delivery (7d)', s.avg_minutes == null ? '—' : s.avg_minutes + ' min'],
         ['dawaPass members', s.pass_members], ['Customers', s.customers], ['Riders online', s.riders_online]].map(([k, v]) => `<div class="card tile"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>
-      ${s.pharmacies_pending || s.riders_pending || s.refunds_due || s.rx_waiting ? `<div class="row wrap">
+      ${s.upi_to_check || s.pharmacies_pending || s.riders_pending || s.refunds_due || s.rx_waiting ? `<div class="row wrap">
+        ${s.upi_to_check ? `<a href="#/upi" class="pill bad" style="font-size:13px;padding:8px 14px">${s.upi_to_check} UPI payment to check</a>` : ''}
         ${s.pharmacies_pending ? `<a href="#/pharmacies" class="pill warn" style="font-size:13px;padding:8px 14px">${s.pharmacies_pending} pharmacy waiting for approval</a>` : ''}
         ${s.riders_pending ? `<a href="#/riders" class="pill warn" style="font-size:13px;padding:8px 14px">${s.riders_pending} rider waiting for approval</a>` : ''}
         ${s.refunds_due ? `<a href="#/refunds" class="pill bad" style="font-size:13px;padding:8px 14px">${s.refunds_due} refund to send</a>` : ''}
@@ -67,9 +68,9 @@ const pages = {
   },
   async refunds() {
     const rows = await api.refunds();
-    return `<span class="mute">Orders cancelled after an online payment. Refund them in the Razorpay dashboard (Payments → find the payment ID → Refund), then mark them refunded here.</span>
-      <div class="card"><table><thead><tr><th>Order</th><th>Cancelled</th><th>Reason</th><th>Customer</th><th>Razorpay payment</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>
-      ${rows.map(o => `<tr><td><b>${o.id}</b></td><td class="s13">${when(o.cancelled_at)}</td><td class="s13">${esc(o.cancel_reason)}</td><td class="s13">${esc(o.customer_phone)}</td><td class="s12"><code>${esc(o.razorpay_payment_id || '—')}</code></td><td style="text-align:right"><b>${rupee(o.total)}</b></td>
+    return `<span class="mute">Orders cancelled after the customer paid. UPI: send the money back from your UPI / bank app to the customer's UPI. Card / netbanking: refund in the Cashfree dashboard (Transactions → find the payment → Refund). Then mark it refunded here.</span>
+      <div class="card"><table><thead><tr><th>Order</th><th>Cancelled</th><th>Reason</th><th>Customer</th><th>Payment ref</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>
+      ${rows.map(o => `<tr><td><b>${o.id}</b></td><td class="s13">${when(o.cancelled_at)}</td><td class="s13">${esc(o.cancel_reason)}</td><td class="s13">${esc(o.customer_phone)}</td><td class="s12">${o.upi_ref ? 'UPI <code>' + esc(o.upi_ref) + '</code>' : `<code>${esc(o.razorpay_payment_id || '—')}</code>`}</td><td style="text-align:right"><b>${rupee(o.total)}</b></td>
         <td><button class="btn sm" data-refunded="${o.id}">Mark refunded</button></td></tr>`).join('') || '<tr><td colspan="7"><div class="empty">No refunds pending 🎉</div></td></tr>'}</tbody></table></div>`;
   },
   async pharmacies() {
@@ -125,6 +126,15 @@ const pages = {
       ${rows.map(a => `<tr style="${a.handled ? 'opacity:.5' : ''}"><td class="s13">${when(a.created_at)}</td><td><span class="pill ${a.kind === 'pharmacy' ? '' : 'gold'}">${a.kind}</span></td><td><b>${esc(a.name)}</b></td><td class="s13">${esc(a.phone)}</td><td class="s13">${esc(a.detail)}</td><td class="s13">${esc(a.city)}</td>
         <td><input type="checkbox" data-lead="${a.id}" ${a.handled ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--em-text)"></td></tr>`).join('') || '<tr><td colspan="7"><div class="empty">No leads yet</div></td></tr>'}</tbody></table></div>`;
   },
+  async upi() {
+    const rows = await api.upiToCheck(), set = await getSettings();
+    return `<div class="card pad stack" style="gap:6px"><span class="serif s18">UPI payments to check</span>
+        <span class="s13 mute">Customers paid ${set.upi_id ? 'to <b>' + esc(set.upi_id) + '</b>' : 'by UPI (set your UPI ID in Settings)'} and typed the 12-digit UPI reference. Open your bank or UPI business app, find a payment with the same reference and amount, then confirm it. Confirmed orders go straight to the pharmacy.</span></div>
+      <div class="card" style="overflow:auto"><table><thead><tr><th>Order</th><th>Customer</th><th>Amount</th><th>UPI reference</th><th>Sent</th><th></th></tr></thead><tbody>
+      ${rows.map(o => `<tr><td><a href="#/orders/${o.id}"><b>${o.id}</b></a>${o.status === 'cancelled' ? ' <span class="pill bad">cancelled</span>' : ''}</td><td>${esc(o.customer_name || '—')}<br><span class="s12 mute">+${esc(o.customer_phone)}</span></td>
+        <td><b>${rupee(o.total)}</b></td><td><code style="font-size:14px;letter-spacing:.04em">${esc(o.upi_ref || '')}</code></td><td class="s13">${timeAgo(o.upi_submitted_at || o.created_at)}</td>
+        <td><div class="row" style="gap:8px;justify-content:flex-end"><button class="btn sm" data-upiok="${o.id}">Money received</button><button class="btn ghost sm" data-upino="${o.id}">Not received</button></div></td></tr>`).join('') || '<tr><td colspan="6"><div class="empty">No UPI payments waiting</div></td></tr>'}</tbody></table></div>`;
+  },
   async support() {
     const rows = await api.tickets();
     return `<div class="stack">${rows.map(t => `<div class="card pad stack" style="gap:8px"><div class="row between"><b>${esc(t.subject)}</b><span class="row" style="gap:8px">${t.order_id ? `<a href="#/orders/${esc(t.order_id)}" class="s13">${esc(t.order_id)}</a>` : ''}<span class="pill ${t.status === 'open' ? 'warn' : ''}">${t.status}</span><span class="s12 mute">${timeAgo(t.created_at)}</span></span></div>
@@ -137,7 +147,10 @@ const pages = {
         ${f('delivery_fee', 'Delivery fee (₹)', 'Free for dawaPass members')}${f('handling_fee', 'Handling fee (₹)')}${f('pass_price', 'dawaPass price (₹ / 30 days)')}${f('pass_off', 'dawaPass discount (%)')}
         ${f('rider_pay', 'Rider pay per delivery (₹)')}${f('payment_minutes', 'Cancel unpaid online orders after (minutes)')}</div>
       <div class="card pad stack"><span class="serif s18">Payments</span>
-        <div class="row between"><div class="stack" style="gap:2px"><b>Test mode</b><span class="s12 mute">ON = "Pay" works without Razorpay, no money moves. Turn OFF before launch.</span></div><button class="switch ${s.payments_test_mode ? 'on' : ''}" data-toggle="payments_test_mode"></button></div>
+        <label class="field">Your UPI ID (customers pay here)<input class="inp" data-settext="upi_id" value="${esc(s.upi_id || '')}" placeholder="e.g. dawa4u@okaxis or 98xxxxxxxx@ybl"><span class="s12 mute" style="font-weight:500">A business / merchant UPI ID works best. Check each payment in Admin → UPI payments.</span></label>
+        <label class="field">Name shown in the UPI app<input class="inp" data-settext="upi_name" value="${esc(s.upi_name || 'dawa4u')}"></label>
+        <span class="s13 mute">Cards &amp; netbanking go through Cashfree once its keys are added in Supabase (Edge Functions → Secrets).</span>
+        <div class="row between"><div class="stack" style="gap:2px"><b>Test mode</b><span class="s12 mute">ON = orders go through without real payment while UPI ID / Cashfree are not set up. Turn OFF before launch.</span></div><button class="switch ${s.payments_test_mode ? 'on' : ''}" data-toggle="payments_test_mode"></button></div>
         <span class="serif s18" style="margin-top:8px">Banner on the shop</span>
         <label class="field">Announcement (leave empty to hide)<input class="inp" data-settext="announcement" value="${esc(s.announcement)}" placeholder="e.g. Diwali: dawaPass at ₹49 this week"></label>
         <button class="btn" id="saveset" style="align-self:flex-start">Save settings</button></div></div>`;
@@ -155,7 +168,8 @@ async function orderDetail(id) {
         <div class="hr"></div>
         ${[['MRP total', o.mrp_total], ['Items', o.sub], ['dawaPass discount', -o.disc], ['Delivery', o.delivery], ['Handling', o.handling], ['dawaPass fee', o.pass_fee]].filter(x => x[1]).map(([k, v]) => `<div class="row between s13"><span class="mute">${k}</span><span>${v < 0 ? '− ' + rupee(-v) : rupee(v)}</span></div>`).join('')}
         <div class="row between"><b>Total</b><b>${rupee(o.total)}</b></div>
-        <span class="s13">${payLabel(o.pay_method)} · ${o.pay_status}${o.pay_test ? ' (test mode)' : ''}${o.razorpay_payment_id ? ' · <code>' + esc(o.razorpay_payment_id) + '</code>' : ''}</span>
+        <span class="s13">${payLabel(o.pay_method)} · ${o.pay_status}${o.pay_test ? ' (test mode)' : ''}${o.upi_ref ? ' · UPI ref <code>' + esc(o.upi_ref) + '</code>' : ''}${o.razorpay_payment_id ? ' · ' + esc(o.pay_gateway || 'gateway') + ' <code>' + esc(o.razorpay_payment_id) + '</code>' : ''}</span>
+        ${o.pay_status === 'verifying' ? `<div class="row"><button class="btn sm" data-upiok="${o.id}">UPI money received</button><button class="btn ghost sm" data-upino="${o.id}">Not received</button></div>` : ''}
         ${o.cancel_reason ? `<span class="pill bad" style="white-space:normal">${esc(o.cancel_reason)}</span>` : ''}</div>
       <div class="card pad stack"><span class="serif s18">People</span>
         <div class="stack s13" style="gap:6px"><span><b>Customer:</b> ${esc(o.customer_name || '—')} · +${esc(o.customer_phone)}</span><span><b>Deliver to:</b> ${esc(o.address_label)}, ${esc(o.address_line)} · ${esc(o.pin)}</span>
@@ -172,7 +186,7 @@ async function render() {
   const s = S.stats || {};
   const nav = [
     { id: 'overview', label: 'Overview', icon: ICON.chart }, { id: 'orders', label: 'Orders', icon: ICON.orders, count: s.live },
-    { id: 'refunds', label: 'Refunds', icon: ICON.rupee, count: s.refunds_due }, { id: 'pharmacies', label: 'Pharmacies', icon: ICON.store, count: s.pharmacies_pending },
+    { id: 'upi', label: 'UPI payments', icon: ICON.rupee, count: s.upi_to_check }, { id: 'refunds', label: 'Refunds', icon: ICON.rupee, count: s.refunds_due }, { id: 'pharmacies', label: 'Pharmacies', icon: ICON.store, count: s.pharmacies_pending },
     { id: 'riders', label: 'Riders & payouts', icon: ICON.bike.replace('stroke="#111827"', 'stroke="currentColor"'), count: s.riders_pending },
     { id: 'customers', label: 'Customers', icon: ICON.users }, { id: 'medicines', label: 'Medicines', icon: ICON.box }, { id: 'dawapass', label: 'dawaPass', icon: ICON.check },
     { id: 'leads', label: 'Partner leads', icon: ICON.link }, { id: 'support', label: 'Support', icon: ICON.help }, { id: 'settings', label: 'Settings', icon: ICON.gear }];
@@ -222,13 +236,16 @@ document.addEventListener('click', async e => {
   if (el.dataset.partner) { const { partner, id, st } = el.dataset; if (st === 'suspended' && !confirm('Suspend this ' + partner + '? They will stop getting orders.')) return; return busy(el, async () => { await api.setPartner(partner, id, st); S.stats = await api.stats(); toast(st === 'active' ? 'Approved' : 'Suspended'); render(); }); }
   if (el.dataset.savepins) return busy(el, async () => { const pins = $(`[data-pins="${el.dataset.savepins}"]`).value.split(/[\s,]+/).filter(Boolean); if (pins.some(x => !/^[1-9]\d{5}$/.test(x))) throw new Error('PIN codes must be 6 digits'); await api.update('pharmacies', el.dataset.savepins, { pins }); toast('PIN codes saved'); });
   if (el.dataset.payrider) { const o = S.cache.owed[el.dataset.payrider]; if (!confirm(`Mark ${rupee(o.total)} paid to ${o.name}?`)) return; return busy(el, async () => { for (const id of o.ids) await api.update('orders', id, { rider_paid: true }); S.stats = await api.stats(); toast('Marked paid'); render(); }); }
+  if (el.dataset.upiok) { if (!confirm('Did you see this exact amount with this UPI reference in your bank / UPI app?')) return; return busy(el, async () => { const o = await api.upiReview(el.dataset.upiok, true); S.stats = await api.stats(); toast(o.status === 'placed' ? 'Confirmed — sent to the pharmacy' : 'Marked for refund (order was cancelled)'); render(); }); }
+  if (el.dataset.upino) { const r = prompt('Message for the customer (order will be cancelled):', 'We could not find your UPI payment. If money left your account, write to support with your UPI reference.'); if (r === null) return; return busy(el, async () => { await api.upiReview(el.dataset.upino, false, r); S.stats = await api.stats(); toast('Order cancelled'); render(); }); }
   if (el.dataset.refunded) return busy(el, async () => { await api.update('orders', el.dataset.refunded, { pay_status: 'refunded' }); S.stats = await api.stats(); toast('Marked refunded'); render(); });
   if (el.dataset.givepass) return busy(el, async () => { const c = (await api.customers()).find(x => x.id === el.dataset.givepass); const base = c.pass_until && new Date(c.pass_until) > new Date() ? new Date(c.pass_until) : new Date(); await api.update('profiles', c.id, { pass_until: new Date(base.getTime() + 30 * 864e5).toISOString() }); toast('dawaPass given'); render(); });
   if (el.dataset.editprod !== undefined) return productModal((S.cache.products || []).find(p => p.id === el.dataset.editprod));
   if (el.dataset.cancel) { const r = prompt('Reason for cancelling (customer will see it):', 'Cancelled by dawa4u support'); if (r === null) return; return busy(el, async () => { await api.cancel(el.dataset.cancel, r); toast('Cancelled'); S.stats = await api.stats(); render(); }); }
   if (el.dataset.reply) return busy(el, async () => { const v = $(`[data-replybox="${el.dataset.reply}"]`).value.trim(); if (!v) throw new Error('Write a reply'); await api.replyTicket(el.dataset.reply, v); toast('Reply sent'); render(); });
   if (el.dataset.toggle) { el.classList.toggle('on'); return; }
-  if (el.id === 'saveset') return busy(el, async () => { const s = {}; $$('[data-set]').forEach(i => { s[i.dataset.set] = Math.max(0, Math.round(+i.value || 0)); }); $$('[data-toggle]').forEach(b => { s[b.dataset.toggle] = b.classList.contains('on'); }); s.announcement = $('[data-settext="announcement"]').value.trim(); await api.saveSettings(s); toast('Settings saved'); });
+  if (el.id === 'saveset') return busy(el, async () => { const s = {}; $$('[data-set]').forEach(i => { s[i.dataset.set] = Math.max(0, Math.round(+i.value || 0)); }); $$('[data-toggle]').forEach(b => { s[b.dataset.toggle] = b.classList.contains('on'); }); s.announcement = $('[data-settext="announcement"]').value.trim(); s.upi_id = $('[data-settext="upi_id"]').value.trim().toLowerCase(); s.upi_name = $('[data-settext="upi_name"]').value.trim() || 'dawa4u';
+    if (s.upi_id && !/^[a-z0-9._-]{2,}@[a-z][a-z0-9.]{1,}$/.test(s.upi_id)) throw new Error('That does not look like a UPI ID (name@bank)'); await api.saveSettings(s); toast('Settings saved'); });
   if (el.id === 'oexp') return download('dawa4u-orders.csv', toCsv(S.cache.orders || [], [['Order', o => o.id], ['Created', o => o.created_at], ['Status', o => o.status], ['Customer', o => o.customer_name], ['Phone', o => o.customer_phone], ['Pharmacy', o => o.pharmacy_name], ['Rider', o => o.rider_name], ['Payment', o => o.pay_method], ['Pay status', o => o.pay_status], ['Items', o => o.sub], ['Discount', o => o.disc], ['Delivery', o => o.delivery], ['dawaPass fee', o => o.pass_fee], ['Total', o => o.total]]));
 });
 let qt;

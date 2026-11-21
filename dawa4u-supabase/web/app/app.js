@@ -3,6 +3,7 @@
 // Screens: home · search · rx · cart · track · orders · account · login · location · pass · help
 // =====================================================================
 import { auth, rupee, esc, when, toast, CATS, RX_RULES, PAYS, payLabel, STATUS, LOGO, ICON, readImages, installable, shop } from '../common/api.js';
+import { upiBox } from '../common/upi.js';
 import { C } from '../common/customer.js';
 import { locationPicker, trackingMap } from '../common/map.js';
 
@@ -132,7 +133,7 @@ const screens = {
           <span class="stack" style="gap:2px;flex:1">${a ? `<span class="s13 b">Deliver to ${esc(a.label)}</span><span class="s11 mute">${esc(a.line)} · ${esc(a.pin)}</span>` : `<span class="s13 b">Add delivery address</span>`}</span><span class="s13 b" style="color:var(--em-text)">${a ? 'Change' : 'Add'}</span></button>
         <div class="stack" style="gap:8px"><span class="s13 b">Pay using</span>
           <div class="grid2">${PAYS.map(p => `<label class="opt ${C.cart.pay === p.id ? 'on' : ''}"><input type="radio" name="pay" value="${p.id}" ${C.cart.pay === p.id ? 'checked' : ''}>${p.label}</label>`).join('')}</div>
-          <span class="s11 mute">Secure payments by Razorpay · UPI, cards and netbanking${C.settings.payments_test_mode ? ' · <b>test mode</b>' : ''}</span></div>
+          <span class="s11 mute">UPI straight to dawa4u · cards &amp; netbanking secured by Cashfree${C.settings.payments_test_mode ? ' · <b>test mode</b>' : ''}</span></div>
       </div></div>
       <div class="foot row"><div class="stack" style="gap:2px"><span class="s11 mute b">PAY USING</span><span class="s13 b">${payLabel(C.cart.pay)}</span></div>
         <button class="btn" id="pay" style="flex:1" ${need.length ? 'disabled' : ''}>${need.length ? 'Prescription needed' : !C.user ? 'Log in to order' : !a ? 'Add address' : (C.cart.pay === 'cod' ? 'Place order · ' : 'Pay ') + rupee(b.total)}</button></div>`;
@@ -143,8 +144,9 @@ const screens = {
     const t = C.track(o), k = t.idx < 2 ? 0 : t.delivered ? 1 : Math.min(0.92, t.pct / 100);
     if (o.status === 'pending_payment' || o.status === 'cancelled') return `${topBar('Order ' + o.id, '', '#/orders')}<div class="scroll"><div class="pad stack">
       <div class="card stack" style="padding:18px;gap:8px"><span class="status ${o.status}" style="align-self:flex-start">${STATUS[o.status]}</span>
-      <span class="s13 mute">${o.status === 'cancelled' ? esc(o.cancel_reason || '') + (o.pay_status === 'refund_due' ? ' · Your refund is being processed (3–5 days).' : '') : 'Complete the payment to send this order to the pharmacy. Unpaid orders are cancelled after ' + C.settings.payment_minutes + ' minutes.'}</span></div>
-      ${orderCard(o)}</div></div>${o.status === 'pending_payment' ? `<div class="foot row"><button class="btn ghost" id="cancelorder" data-id="${o.id}" style="flex:1">Cancel</button><button class="btn" id="payagain" data-id="${o.id}" style="flex:2">Pay ${rupee(o.total)}</button></div>` : ''}`;
+      <span class="s13 mute">${o.status === 'cancelled' ? esc(o.cancel_reason || '') + (o.pay_status === 'refund_due' ? ' · Your refund is being processed (3–5 days).' : '') : (o.pay_status === 'verifying' ? 'Thanks — we are checking your UPI payment.' : (o.pay_method === 'upi' ? 'Pay by UPI below' : 'Complete the payment') + ' to send this order to the pharmacy. Unpaid orders are cancelled after ' + C.settings.payment_minutes + ' minutes.')}</span></div>
+      ${o.status === 'pending_payment' && o.pay_method === 'upi' ? upiBox(o, C.settings) : ''}
+      ${orderCard(o)}</div></div>${o.status === 'pending_payment' ? `<div class="foot row"><button class="btn ghost" id="cancelorder" data-id="${o.id}" style="flex:1">Cancel</button>${o.pay_method === 'upi' ? '' : `<button class="btn" id="payagain" data-id="${o.id}" style="flex:2">Pay ${rupee(o.total)}</button>`}</div>` : ''}`;
     return `<div class="scroll" style="display:flex;flex-direction:column">
       ${hasPins(o) ? `<div class="map" style="height:340px"><div id="tmap" data-order="${o.id}" style="position:absolute;inset:0"></div>
         <button class="icon-btn" data-back="#/orders" aria-label="Back" style="position:absolute;z-index:600;left:16px;top:calc(env(safe-area-inset-top) + 16px);background:var(--card)">${ICON.back}</button></div>`
@@ -328,11 +330,13 @@ document.addEventListener('click', async e => {
       if (!C.user) return go('#/login?next=' + encodeURIComponent('#/cart'));
       if (!C.address()) return go('#/location');
       return busy(el, async () => {
-        try { const o = await C.checkout(); toast(o.pay_method === 'cod' ? 'Order placed' : 'Payment successful'); location.replace('#/track/' + o.id); }
+        try { const o = await C.checkout(); toast(o.status === 'pending_payment' ? 'Order saved — pay by UPI to confirm it' : o.pay_method === 'cod' ? 'Order placed' : 'Payment successful'); location.replace('#/track/' + o.id); }
         catch (err) { if (err.order) location.replace('#/track/' + err.order.id); throw err; }
       }).catch(() => {});
     }
     case 'payagain': return busy(el, async () => { const o = C.orders.find(x => x.id === el.dataset.id); await C.payAgain(o); toast('Payment successful'); render(); }).catch(() => {});
+    case 'upisubmit': return busy(el, async () => { await shop.submitUpi(el.dataset.id, ($('#upiref') || {}).value); await C.loadOrders(); toast('Thanks! We are checking your payment'); render(); }).catch(() => {});
+    case 'upicopy': try { await navigator.clipboard.writeText(C.settings.upi_id); toast('UPI ID copied'); } catch { toast(C.settings.upi_id); } return;
     case 'cancelorder': if (!confirm('Cancel this order?')) return; return busy(el, async () => { await C.cancel(el.dataset.id); toast('Order cancelled'); render(); }).catch(() => {});
     case 'logout': await auth.signOut(); toast('Logged out'); return location.replace('#/');
     case 'sendotp': { const p = $('#phone').value.replace(/\D/g, ''); return busy(el, async () => { await auth.sendOtp(p); go('#/login?' + new URLSearchParams({ phone: p, next: qp.get('next') || '#/' })); }).catch(() => {}); }
