@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Where the ordering apps live. Change this one line if the apps move. */
 define( 'DAWA4U_APPS', 'https://dawa4u.in/' ); // shop/, app/, pharmacy/, rider/, admin/ live next to WordPress
 
+require_once __DIR__ . '/inc/medicines.php';
+
 function dawa4u_app( $path = '' ) {
 	return esc_url( DAWA4U_APPS . ltrim( $path, '/' ) );
 }
@@ -335,6 +337,76 @@ function dawa4u_setup_site() {
 }
 add_action( 'after_switch_theme', 'dawa4u_setup_site' );
 add_action( 'init', 'dawa4u_setup_site', 99 );
+
+/** v2: Medicines page (live list from the apps), in both menus, and a short list on the home page. */
+function dawa4u_setup_v2() {
+	if ( get_option( 'dawa4u_setup_v2' ) ) {
+		return;
+	}
+	update_option( 'dawa4u_setup_v2', time() );
+
+	$page = get_page_by_path( 'medicines', OBJECT, 'page' );
+	if ( $page ) {
+		$id = $page->ID;
+	} else {
+		$id = wp_insert_post( array(
+			'post_type'    => 'page',
+			'post_status'  => 'publish',
+			'post_title'   => 'Medicines',
+			'post_name'    => 'medicines',
+			'menu_order'   => 1,
+			'post_content' => d4b_p( 'Live prices and stock from our licensed partner pharmacies. Enter your PIN, add what you need, and check out in the dawa4u shop.', 'd4-lead' ) .
+				"<!-- wp:shortcode -->\n[dawa4u_medicines]\n<!-- /wp:shortcode -->\n",
+		) );
+	}
+	if ( ! $id || is_wp_error( $id ) ) {
+		return;
+	}
+
+	$locations = get_theme_mod( 'nav_menu_locations', array() );
+	foreach ( array( 'primary', 'footer' ) as $loc ) {
+		if ( empty( $locations[ $loc ] ) ) {
+			continue;
+		}
+		$have = false;
+		foreach ( (array) wp_get_nav_menu_items( $locations[ $loc ] ) as $item ) {
+			if ( (int) $item->object_id === (int) $id ) {
+				$have = true;
+			}
+		}
+		if ( ! $have ) {
+			wp_update_nav_menu_item( $locations[ $loc ], 0, array(
+				'menu-item-object-id' => $id,
+				'menu-item-object'    => 'page',
+				'menu-item-type'      => 'post_type',
+				'menu-item-status'    => 'publish',
+				'menu-item-position'  => 1,
+			) );
+			// put it first
+			$items = wp_get_nav_menu_items( $locations[ $loc ] );
+			$order = 2;
+			foreach ( (array) $items as $item ) {
+				$pos = ( (int) $item->object_id === (int) $id ) ? 1 : $order++;
+				update_post_meta( $item->ID, '_menu_item_menu_order', $pos );
+				wp_update_post( array( 'ID' => $item->ID, 'menu_order' => $pos ) );
+			}
+		}
+	}
+
+	// Short list on the home page, just before the dawaPass box (only if the page doesn't have one yet).
+	$home = (int) get_option( 'page_on_front' );
+	if ( $home ) {
+		$post = get_post( $home );
+		if ( $post && false === strpos( $post->post_content, 'dawa4u_medicines' ) ) {
+			$block  = d4b_h( 'Popular medicines' ) . "<!-- wp:shortcode -->\n[dawa4u_medicines limit=\"8\"]\n<!-- /wp:shortcode -->\n";
+			$marker = '<!-- wp:group {"className":"d4-pass"';
+			$pos    = strpos( $post->post_content, $marker );
+			$new    = false === $pos ? $post->post_content . $block : substr( $post->post_content, 0, $pos ) . $block . substr( $post->post_content, $pos );
+			wp_update_post( array( 'ID' => $home, 'post_content' => $new ) );
+		}
+	}
+}
+add_action( 'init', 'dawa4u_setup_v2', 100 );
 
 /** Pages made before the apps moved to dawa4u.in still hold the old github.io links: point them here. */
 add_filter( 'the_content', function ( $html ) {
