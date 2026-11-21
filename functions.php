@@ -31,6 +31,40 @@ add_action( 'wp_enqueue_scripts', function () {
 	wp_enqueue_style( 'dawa4u', get_stylesheet_uri(), array( 'dawa4u-fonts' ), wp_get_theme()->get( 'Version' ) );
 } );
 
+/** Light / dark mode: decided before the page paints (auto = follows the phone / computer). */
+add_action( 'wp_head', function () {
+	echo "<script>(function(){var k='d4u-theme',m='auto';try{m=localStorage.getItem(k)||'auto'}catch(e){}var l=m==='light'||(m==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.setAttribute('data-theme',l?'light':'dark');document.documentElement.setAttribute('data-theme-mode',m)})();</script>\n";
+}, 0 );
+
+add_action( 'wp_footer', function () {
+	?>
+<script>
+(function () {
+  var k = 'd4u-theme', order = ['auto', 'light', 'dark'], root = document.documentElement;
+  var icons = {
+    auto: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>',
+    light: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    dark: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
+  };
+  var media = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
+  function mode() { try { return localStorage.getItem(k) || 'auto'; } catch (e) { return 'auto'; } }
+  function apply() {
+    var m = mode(), light = m === 'light' || (m === 'auto' && media && media.matches);
+    root.setAttribute('data-theme', light ? 'light' : 'dark'); root.setAttribute('data-theme-mode', m);
+    var labels = { auto: 'Theme: automatic', light: 'Theme: light', dark: 'Theme: dark' };
+    document.querySelectorAll('.d4-theme').forEach(function (b) { b.innerHTML = icons[m]; b.title = labels[m]; b.setAttribute('aria-label', labels[m] + ' (tap to change)'); });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.d4-theme'); if (!b) return;
+    var next = order[(order.indexOf(mode()) + 1) % 3]; try { localStorage.setItem(k, next); } catch (er) {} apply();
+  });
+  if (media && media.addEventListener) media.addEventListener('change', apply);
+  apply();
+})();
+</script>
+	<?php
+}, 20 );
+
 add_action( 'wp_head', function () {
 	echo '<meta name="theme-color" content="#0B1708">' . "\n";
 	echo '<link rel="icon" href="' . esc_url( get_template_directory_uri() . '/icon.svg' ) . '" type="image/svg+xml">' . "\n";
@@ -39,7 +73,7 @@ add_action( 'wp_head', function () {
 /** The capsule logo, same as the apps. */
 function dawa4u_logo( $size = 34 ) {
 	$s = (int) $size;
-	return '<svg width="' . $s . '" height="' . $s . '" viewBox="0 0 120 120" aria-hidden="true"><g transform="rotate(45 64 58)" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round"><path d="M39 58 V38 A25 25 0 0 1 89 38 V58 Z" fill="#22C55E"/><path d="M39 58 H89 V78 A25 25 0 0 1 39 78 Z" fill="#FFC72C"/></g></svg>';
+	return '<svg width="' . $s . '" height="' . $s . '" viewBox="0 0 120 120" aria-hidden="true"><g transform="rotate(45 64 58)" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round"><path d="M39 58 V38 A25 25 0 0 1 89 38 V58 Z" fill="#166534"/><path d="M39 58 H89 V78 A25 25 0 0 1 39 78 Z" fill="#C9930A"/></g></svg>';
 }
 
 /* ------------------------------------------------------------------

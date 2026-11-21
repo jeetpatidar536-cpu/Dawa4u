@@ -13,6 +13,7 @@
     <a class="d4-brand" href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="dawa4u home"><?php echo dawa4u_logo( 34 ); // phpcs:ignore ?><span>dawa<b>4u</b></span></a>
     <input type="checkbox" id="d4-menu" class="d4-menu-toggle" aria-hidden="true">
     <label for="d4-menu" class="d4-menu-btn" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></label>
+    <button type="button" class="d4-theme" aria-label="Light or dark mode"></button>
     <a class="d4-cta" href="<?php echo dawa4u_app( 'shop/' ); // phpcs:ignore ?>">Order now</a>
     <nav class="d4-nav" aria-label="Main">
       <?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => false, 'depth' => 1, 'fallback_cb' => 'dawa4u_fallback_menu' ) ); ?>
