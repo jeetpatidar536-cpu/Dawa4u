@@ -1,0 +1,22 @@
+{
+  "name": "dawa4u Pharmacy",
+  "short_name": "d4u Pharmacy",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFFBEA",
+  "theme_color": "#15370D",
+  "icons": [
+    {
+      "src": "../common/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../common/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
