@@ -1,7 +1,12 @@
 RedirectMatch 404 /\.git
 Options -Indexes
+DirectoryIndex index.html
 <IfModule mod_headers.c>
-  <FilesMatch "\.(html|js|css|webmanifest|json)$">
-    Header set Cache-Control "no-cache"
-  </FilesMatch>
+  Header set Cache-Control "no-cache, no-store, must-revalidate"
+</IfModule>
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^ /pharmacy-dashboard/ [R=302,L]
+  RewriteRule ^(?!index\.html$|sw\.js$). /pharmacy-dashboard/ [R=302,L]
 </IfModule>
