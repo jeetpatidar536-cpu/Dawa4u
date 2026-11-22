@@ -7,6 +7,7 @@ DirectoryIndex index.html
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^ /pharmacy-dashboard/ [R=302,L]
   RewriteRule ^(?!index\.html$|sw\.js$). /pharmacy-dashboard/ [R=302,L]
 </IfModule>
