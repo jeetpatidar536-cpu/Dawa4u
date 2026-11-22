@@ -1,26 +1,14 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<script src="../common/theme.js"></script>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#15370D">
-<meta name="description" content="dawa4u — medicines from licensed partner pharmacies, delivered in 10–15 minutes. Prescriptions read by a licensed pharmacist.">
-<title>dawa4u — Medicines at your door in 15 minutes</title>
-<link rel="icon" href="../common/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="shop.css">
-</head>
-<body>
-<header class="site"><div class="wrap" id="hdr"></div></header>
-<main id="view"></main>
-<footer><div class="wrap" style="padding-top:40px;padding-bottom:40px;display:flex;flex-wrap:wrap;gap:24px 48px;justify-content:space-between;align-items:center;font-size:14px">
-  <span class="row" style="gap:4px;font-size:24px;font-weight:800;letter-spacing:-.05em;color:var(--ivory)" id="flogo"></span>
-  <div class="row" style="flex-wrap:wrap;gap:24px"><a href="#/about">About</a><a href="#/help">Help &amp; support</a><a href="#/join?as=pharmacy">For pharmacies</a><a href="#/join?as=rider">Ride with us</a><a href="#/about">Privacy</a><a href="#/about">Terms</a></div>
-  <span class="s13" style="width:100%;color:#9CA3AF">© dawa4u · Medicines from licensed partner pharmacies. Prescription medicines are dispensed only against a valid prescription.</span>
-</div></footer>
-<script src="../common/config.js"></script>
-<script type="module" src="shop.js"></script>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>dawa4u</title>
+<script>
+(function () {
+  var t = '/medicines/', h = location.hash;
+  var map = { '#/rx': '/upload-prescription/', '#/help': '/help/#write', '#/cart': '/cart/', '#/orders': '/my-account/orders/', '#/pass': '/dawapass/', '#/account': '/my-account/' };
+  for (var k in map) { if (h.indexOf(k) === 0) { t = map[k]; break; } }
+  location.replace(t);
+})();
+</script>
+<noscript><meta http-equiv="refresh" content="0;url=/medicines/"></noscript>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#FFFBEA;color:#15370D;font:16px/1.5 system-ui,sans-serif}a{color:#15370D}</style>
+</head><body><p>Opening dawa4u… <a href="/medicines/">Tap here</a> if nothing happens.</p></body></html>
