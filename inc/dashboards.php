@@ -179,14 +179,7 @@ add_shortcode( 'dawa4u_pharmacy', function () {
 			$out .= '<div class="d4u-row"><span>#' . esc_html( $o->get_order_number() ) . ' · ' . esc_html( $o->get_billing_first_name() ) . '</span><span>' . esc_html( wc_get_order_status_name( $o->get_status() ) ) . ' · ' . wp_kses_post( wc_price( $o->get_total() ) ) . '</span></div>';
 		}
 	} elseif ( 'profile' === $tab && ! $boss ) {
-		$out .= d4u_form_open( 'ph_profile', 'd4u-card' );
-		$out .= '<label class="d4u-field"><span>Pharmacy name</span><input name="shop" required value="' . esc_attr( get_user_meta( $uid, 'd4u_shop', true ) ) . '"></label>';
-		$out .= '<label class="d4u-field"><span>Mobile number</span><input name="phone" required value="' . esc_attr( get_user_meta( $uid, 'd4u_phone', true ) ) . '"></label>';
-		$out .= '<label class="d4u-field"><span>Address</span><textarea name="address" rows="2" required>' . esc_textarea( get_user_meta( $uid, 'd4u_address', true ) ) . '</textarea></label>';
-		$out .= '<label class="d4u-field"><span>City / town / village</span><input name="city" required value="' . esc_attr( get_user_meta( $uid, 'd4u_city', true ) ) . '"></label>';
-		$out .= '<label class="d4u-field"><span>PIN codes you deliver to</span><input name="pins" required value="' . esc_attr( implode( ', ', d4u_pins( $uid ) ) ) . '"></label>';
-		$out .= '<p class="d4u-small">Drug licence: ' . esc_html( get_user_meta( $uid, 'd4u_licence', true ) ) . ' · To change it, write to the dawa4u team.</p>';
-		$out .= '<button class="d4u-btn" type="submit">Save</button></form>';
+		$out .= d4u_ph_profile_form( $uid );
 	} else {
 		$out .= '<h3 class="d4u-h">Check prescription</h3>';
 		$out .= $rx ? '' : '<p class="d4u-empty">No prescriptions to check.</p>';
@@ -266,23 +259,45 @@ function d4u_ph_requests( $reqs ) {
 		return $out . '<p class="d4u-empty">No prescriptions waiting.</p>';
 	}
 	foreach ( $reqs as $o ) {
-		$out .= '<article class="d4u-card d4u-order">';
-		$out .= '<header><strong>#' . esc_html( $o->get_order_number() ) . '</strong><span class="d4u-small">' . esc_html( d4u_ago( $o ) ) . '</span></header>';
-		$out .= '<p>' . esc_html( $o->get_billing_first_name() ) . ' · <a href="tel:' . esc_attr( preg_replace( '/[^0-9+]/', '', $o->get_billing_phone() ) ) . '">' . esc_html( $o->get_billing_phone() ) . '</a><br><span class="d4u-small">' . esc_html( d4u_order_address( $o ) ) . '</span></p>';
-		if ( $o->get_customer_note() ) {
-			$out .= '<p class="d4u-note">“' . esc_html( $o->get_customer_note() ) . '”</p>';
-		}
-		$out .= d4u_files_html( $o );
-		$out .= d4u_form_open( 'ph_fill', 'd4u-fill' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '">';
-		for ( $i = 0; $i < 6; $i++ ) {
-			$out .= '<div class="d4u-fill-row"><select name="pid[]">' . d4u_product_options() . '</select><input type="number" name="qty[]" min="1" max="20" value="1" aria-label="Quantity"></div>';
-		}
-		$out .= '<p class="d4u-small">Delivery, handling and any dawaPass discount are added automatically.</p>';
-		$out .= '<button class="d4u-btn" type="submit" name="decision" value="send">Send to customer for payment</button></form>';
-		$out .= '<details class="d4u-reject"><summary>Can’t fill it</summary>' . d4u_form_open( 'ph_fill' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '"><input type="hidden" name="decision" value="reject"><label class="d4u-field"><span>Reason (the customer sees this)</span><input name="reason" required placeholder="e.g. the photo is not readable — please send it again"></label><button class="d4u-btn d4u-btn--danger" type="submit">Reject</button></form></details>';
-		$out .= '</article>';
+		$out .= d4u_ph_request_card( $o );
 	}
 	return $out;
+}
+
+/** One prescription the customer sent on its own: the pharmacist adds the medicines, or rejects it. */
+function d4u_ph_request_card( $o ) {
+	$out  = '<article class="d4u-card d4u-order">';
+	$out .= '<header><strong>#' . esc_html( $o->get_order_number() ) . '</strong><span class="d4u-small">' . esc_html( d4u_ago( $o ) ) . '</span></header>';
+	$out .= '<p>' . esc_html( $o->get_billing_first_name() ) . ' · <a href="tel:' . esc_attr( preg_replace( '/[^0-9+]/', '', $o->get_billing_phone() ) ) . '">' . esc_html( $o->get_billing_phone() ) . '</a><br><span class="d4u-small">' . esc_html( d4u_order_address( $o ) ) . '</span></p>';
+	if ( d4u_is_boss() ) {
+		$ph   = (int) $o->get_meta( '_d4u_pharmacy' );
+		$out .= '<p class="d4u-small">Pharmacy: ' . esc_html( $ph ? d4u_partner_name( $ph ) : 'none yet' ) . '</p>';
+	}
+	if ( $o->get_customer_note() ) {
+		$out .= '<p class="d4u-note">“' . esc_html( $o->get_customer_note() ) . '”</p>';
+	}
+	$out .= d4u_files_html( $o );
+	$out .= d4u_form_open( 'ph_fill', 'd4u-fill' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '">';
+	for ( $i = 0; $i < 6; $i++ ) {
+		$out .= '<div class="d4u-fill-row"><select name="pid[]">' . d4u_product_options() . '</select><input type="number" name="qty[]" min="1" max="20" value="1" aria-label="Quantity"></div>';
+	}
+	$out .= '<p class="d4u-small">Delivery, handling and any dawaPass discount are added automatically.</p>';
+	$out .= '<button class="d4u-btn" type="submit" name="decision" value="send">Send to customer for payment</button></form>';
+	$out .= '<details class="d4u-reject"><summary>Can’t fill it</summary>' . d4u_form_open( 'ph_fill' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '"><input type="hidden" name="decision" value="reject"><label class="d4u-field"><span>Reason (the customer sees this)</span><input name="reason" required placeholder="e.g. the photo is not readable — please send it again"></label><button class="d4u-btn d4u-btn--danger" type="submit">Reject</button></form></details>';
+	return $out . '</article>';
+}
+
+/** The pharmacy's own details (shop name, phone, address, PIN codes). */
+function d4u_ph_profile_form( $uid ) {
+	$out  = d4u_form_open( 'ph_profile', 'd4u-card' );
+	$out .= '<label class="d4u-field"><span>Pharmacy name</span><input name="shop" required value="' . esc_attr( get_user_meta( $uid, 'd4u_shop', true ) ) . '"></label>';
+	$out .= '<label class="d4u-field"><span>Mobile number</span><input name="phone" required inputmode="numeric" value="' . esc_attr( get_user_meta( $uid, 'd4u_phone', true ) ) . '"></label>';
+	$out .= '<label class="d4u-field"><span>Address</span><textarea name="address" rows="2" required>' . esc_textarea( get_user_meta( $uid, 'd4u_address', true ) ) . '</textarea></label>';
+	$out .= '<label class="d4u-field"><span>City / town / village</span><input name="city" required value="' . esc_attr( get_user_meta( $uid, 'd4u_city', true ) ) . '"></label>';
+	$out .= '<label class="d4u-field"><span>PIN codes you deliver to (comma-separated)</span><input name="pins" required inputmode="numeric" placeholder="e.g. 452001, 452002" value="' . esc_attr( implode( ', ', d4u_pins( $uid ) ) ) . '"></label>';
+	$lic  = get_user_meta( $uid, 'd4u_licence', true );
+	$out .= '<p class="d4u-small">Drug licence: ' . esc_html( $lic ? $lic : 'not added yet' ) . ' · To add or change it, write to the dawa4u team.</p>';
+	return $out . '<button class="d4u-btn" type="submit">Save details</button></form>';
 }
 
 /* ------------------------------------------------------------------ pharmacy actions */
