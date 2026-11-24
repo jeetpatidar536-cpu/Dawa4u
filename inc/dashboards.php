@@ -228,11 +228,23 @@ function d4u_ph_card( $o, $mode ) {
 		$out .= '<div class="d4u-actions">';
 		$out .= d4u_action_btn( 'ph_rx', $o, 'Prescription OK — pack it', '', '<input type="hidden" name="decision" value="approve">' );
 		$out .= '<details class="d4u-reject"><summary>Reject</summary>' . d4u_form_open( 'ph_rx' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '"><input type="hidden" name="decision" value="reject"><label class="d4u-field"><span>Reason (the customer sees this)</span><input name="reason" required placeholder="e.g. prescription is older than 6 months"></label><button class="d4u-btn d4u-btn--danger" type="submit">Reject and cancel order</button></form></details>';
-		$out .= '</div>';
+		$out .= d4u_pass_html( $o ) . '</div>';
 	} else {
-		$out .= '<div class="d4u-actions">' . d4u_form_open( 'ph_packed', 'd4u-pack-form' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '"><label class="d4u-field"><span>Your bill no. (optional)</span><input name="bill" maxlength="40" autocomplete="off" placeholder="e.g. from Marg"></label><button class="d4u-btn" type="submit">Packed — ready for pickup</button></form></div>';
+		$out .= '<div class="d4u-actions">' . d4u_form_open( 'ph_packed', 'd4u-pack-form' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '"><label class="d4u-field"><span>Your bill no. (optional)</span><input name="bill" maxlength="40" autocomplete="off" placeholder="e.g. from Marg"></label><button class="d4u-btn" type="submit">Packed — ready for pickup</button></form>' . ( 'approved' === $o->get_meta( '_d4u_rx_state' ) ? '' : d4u_pass_html( $o ) ) . '</div>';
 	}
 	return $out . '</article>';
+}
+
+/** "Don't have it" — hand the order to the next pharmacy near the customer. */
+function d4u_pass_html( $o ) {
+	if ( d4u_is_boss() ) {
+		return '';
+	}
+	$left = count( d4u_rank_pharmacies( d4u_order_pin( $o ), d4u_order_need( $o ), array_merge( d4u_passed( $o ), array( get_current_user_id() ) ) ) );
+	$out  = '<details class="d4u-reject d4u-pass"><summary>Don’t have it</summary>' . d4u_form_open( 'ph_pass' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '">';
+	$out .= '<p class="d4u-small">' . ( $left ? esc_html( sprintf( 'We send it to the next pharmacy near the customer (%d more deliver%s to PIN %s). You won’t see this order again.', $left, 1 === $left ? 's' : '', d4u_order_pin( $o ) ) ) : esc_html( 'No other pharmacy delivers to PIN ' . d4u_order_pin( $o ) . ' — the dawa4u team will take over this order.' ) ) . '</p>';
+	$out .= '<label class="d4u-field"><span>What’s missing? (optional)</span><input name="reason" maxlength="200" placeholder="e.g. Amoxicillin 500 out of stock"></label><button class="d4u-btn d4u-btn--ghost" type="submit">' . ( $left ? 'Send to another pharmacy' : 'Give to the dawa4u team' ) . '</button></form></details>';
+	return $out;
 }
 
 function d4u_product_options() {
@@ -289,6 +301,7 @@ function d4u_ph_request_card( $o ) {
 	$out .= '<p class="d4u-small">Delivery, handling and any dawaPass discount are added automatically.</p>';
 	$out .= '<button class="d4u-btn" type="submit" name="decision" value="send">Send to customer for payment</button></form>';
 	$out .= '<details class="d4u-reject"><summary>Can’t fill it</summary>' . d4u_form_open( 'ph_fill' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '"><input type="hidden" name="decision" value="reject"><label class="d4u-field"><span>Reason (the customer sees this)</span><input name="reason" required placeholder="e.g. the photo is not readable — please send it again"></label><button class="d4u-btn d4u-btn--danger" type="submit">Reject</button></form></details>';
+	$out .= '<div class="d4u-actions">' . d4u_pass_html( $o ) . '</div>';
 	return $out . '</article>';
 }
 
@@ -389,6 +402,58 @@ function d4u_ph_packed( $order, $uid, $bill = '' ) {
 		$order->save();
 	}
 	$order->update_status( 'd4u-ready', 'Packed by ' . d4u_partner_name( $uid ) . ( '' !== $bill ? ' (bill ' . $bill . ')' : '' ) . '.' );
+}
+
+/** Pharmacies that said they don't have an order's medicines. */
+function d4u_passed( $order ) {
+	$p = $order->get_meta( '_d4u_passed' );
+	return is_array( $p ) ? array_map( 'intval', $p ) : array();
+}
+
+/**
+ * A pharmacy doesn't have the medicines: try the next pharmacy near the customer,
+ * and if every one has said no, the dawa4u team takes over.
+ *
+ * @return int the new pharmacy, 0 if none was left
+ */
+function d4u_ph_pass( $order, $uid, $reason = '' ) {
+	$passed   = array_values( array_unique( array_merge( d4u_passed( $order ), array( (int) $uid ) ) ) );
+	$reason   = substr( trim( (string) $reason ), 0, 200 );
+	$list     = d4u_rank_pharmacies( d4u_order_pin( $order ), d4u_order_need( $order ), $passed );
+	$next     = $list ? (int) $list[0]['id'] : 0;
+	$order->update_meta_data( '_d4u_passed', $passed );
+	$order->add_order_note( d4u_partner_name( $uid ) . ' doesn’t have it' . ( '' !== $reason ? ' (' . $reason . ')' : '' ) . '. ' . ( $next ? 'Sent to ' . d4u_partner_name( $next ) . ' — ' . d4u_stock_words( $list[0]['stock'] ) . '.' : 'No other pharmacy left for PIN ' . d4u_order_pin( $order ) . '.' ) );
+	if ( $next ) {
+		$order->update_meta_data( '_d4u_pharmacy', $next );
+		$order->save();
+		d4u_mail_pharmacy_once( $order );
+		if ( function_exists( 'd4u_hook_send' ) && get_user_meta( $next, 'd4u_hook_url', true ) ) {
+			d4u_hook_send( $next, 'order.' . d4u_api_status( $order->get_status() ), $order );
+		}
+		return $next;
+	}
+	$order->delete_meta_data( '_d4u_pharmacy' );
+	$order->save();
+	d4u_mail(
+		get_option( 'admin_email' ),
+		'No pharmacy has order #' . $order->get_order_number(),
+		'Every pharmacy said no',
+		'<p>All ' . count( $passed ) . ' pharmac' . ( 1 === count( $passed ) ? 'y' : 'ies' ) . ' for PIN ' . esc_html( d4u_order_pin( $order ) ) . ' said they don’t have the medicines for order #' . esc_html( $order->get_order_number() ) . ( '' !== $reason ? ' (last note: ' . esc_html( $reason ) . ')' : '' ) . '.</p><p>Find a pharmacy for it, or call the customer and cancel (and refund if they paid online).</p><p><a href="' . esc_url( $order->get_edit_order_url() ) . '">Open the order</a></p>'
+	);
+	return 0;
+}
+
+function d4u_do_ph_pass() {
+	$order = d4u_acting_order( '_d4u_pharmacy', array( 'd4u-rx', 'processing', 'd4u-request' ) );
+	if ( d4u_is_boss() ) {
+		d4u_back( 'Choose the pharmacy in the order screen instead.', 'error' );
+	}
+	if ( $order->has_status( 'processing' ) && 'approved' === $order->get_meta( '_d4u_rx_state' ) ) {
+		d4u_back( 'You already approved this prescription, so this order stays with you. Call the dawa4u team if you can’t pack it.', 'error' );
+	}
+	$reason = isset( $_POST['reason'] ) ? sanitize_text_field( wp_unslash( $_POST['reason'] ) ) : ''; // phpcs:ignore
+	$next   = d4u_ph_pass( $order, get_current_user_id(), $reason );
+	d4u_back( $next ? 'Thanks — order #' . $order->get_order_number() . ' went to another pharmacy near the customer.' : 'Thanks — no other pharmacy delivers there, so the dawa4u team will take over order #' . $order->get_order_number() . '.', 'ok' );
 }
 
 function d4u_do_ph_fill() {

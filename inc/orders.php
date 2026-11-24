@@ -233,6 +233,16 @@ function d4u_order_box( $obj ) {
 		echo '<option value="' . esc_attr( $u->ID ) . '"' . selected( $ph, $u->ID, false ) . '>' . esc_html( d4u_partner_name( $u->ID ) . ' (' . implode( ', ', array_slice( d4u_pins( $u->ID ), 0, 4 ) ) . ')' ) . '</option>';
 	}
 	echo '</select></label></p>';
+	$need = d4u_order_need( $order );
+	$rank = d4u_rank_pharmacies( d4u_order_pin( $order ), $need );
+	$said = d4u_passed( $order );
+	if ( $rank || $said ) {
+		echo '<p class="description"><strong>Pharmacies for PIN ' . esc_html( d4u_order_pin( $order ) ) . ', best first:</strong><br>';
+		foreach ( $rank as $r ) {
+			echo esc_html( d4u_partner_name( $r['id'] ) . ' — ' . ( $r['open'] ? 'open' : 'closed' ) . ( $need ? ', ' . d4u_stock_words( $r['stock'] ) : '' ) . ( in_array( $r['id'], $said, true ) ? ' — said they don’t have it' : '' ) ) . '<br>';
+		}
+		echo '</p>';
+	}
 
 	$rd = (int) $order->get_meta( '_d4u_rider' );
 	echo '<p><label><strong>Rider</strong><br><select name="d4u_rider" style="width:100%"><option value="0">— none —</option>';

@@ -603,6 +603,22 @@ add_action( 'rest_api_init', function () {
 		},
 	) );
 
+	register_rest_route( D4U_API_NS, '/orders/(?P<id>\d+)/pass', array(
+		'methods'             => 'POST',
+		'permission_callback' => $auth,
+		'callback'            => function ( WP_REST_Request $req ) {
+			$o = d4u_api_find_order( $req );
+			if ( is_wp_error( $o ) ) {
+				return $o;
+			}
+			if ( ! $o->has_status( array( 'd4u-rx', 'processing', 'd4u-request' ) ) || ( $o->has_status( 'processing' ) && 'approved' === $o->get_meta( '_d4u_rx_state' ) ) ) {
+				return d4u_api_wrong_status( $o, 'to_check, to_pack (no prescription approved) or request' );
+			}
+			$next = d4u_ph_pass( $o, get_current_user_id(), sanitize_text_field( (string) $req['reason'] ) );
+			return array( 'passed' => true, 'id' => $o->get_id(), 'sent_to_another_pharmacy' => (bool) $next );
+		},
+	) );
+
 	register_rest_route( D4U_API_NS, '/medicines', array(
 		'methods'             => 'GET',
 		'permission_callback' => $auth,
@@ -998,11 +1014,14 @@ function d4u_ph_view_connect( $uid, $boss ) {
 		$in += $s['qty'] > 0 ? 1 : 0;
 	}
 	$out .= '<section class="d4u-card d4p-conn__card"><span class="d4p-conn__n">2</span><h3>Update your stock</h3>';
-	if ( $at ) {
+	if ( $at && ! d4u_stock_fresh( $uid ) ) {
+		$out .= '<p class="d4p-conn__status"><span class="d4p-dot is-old"></span>' . esc_html( sprintf( 'Stock is older than %d days, so it isn’t used', D4U_STOCK_DAYS ) ) . ' <span class="d4p-mute">· last updated ' . esc_html( d4u_ph_when( $at ) ) . '</span></p>';
+	} elseif ( $at ) {
 		$out .= '<p class="d4p-conn__status"><span class="d4p-dot is-on"></span>' . esc_html( sprintf( '%d of %d dawa4u medicines in stock', $in, count( d4u_sellable_products() ) ) ) . ' <span class="d4p-mute">· updated ' . esc_html( d4u_ph_when( $at ) ) . ( 'api' === $src ? ' by your software' : ' from a file' ) . '</span></p>';
 	} else {
 		$out .= '<p class="d4p-conn__status"><span class="d4p-dot"></span>No stock uploaded yet</p>';
 	}
+	$out .= '<p class="d4u-small"><strong>Why it matters:</strong> when a customer orders, dawa4u checks every pharmacy that delivers to them and sends the order to one that has the medicines in stock. Upload at least once a day (stock older than ' . (int) D4U_STOCK_DAYS . ' days is ignored), or link your software below to keep it current.</p>';
 	$out .= '<p class="d4u-small">In Marg: Reports → Stock → export to Excel. Any file with an item name (or our item code) and a stock/qty column works — several batches of one medicine are added up. Uploading replaces the old stock.</p>';
 	$out .= d4u_form_open( 'ph_stock', 'd4p-upload', true ) . '<input type="hidden" name="op" value="upload"><label class="d4u-field"><span>Stock file (CSV or Excel .xlsx)</span><input type="file" name="stock" accept=".csv,.xlsx,.xls,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></label><button class="d4u-btn" type="submit">Upload stock</button></form>';
 	$out .= '<p class="d4u-small"><a href="' . esc_url( d4u_export_url( 'stock_template' ) ) . '">Download the stock template</a> (all dawa4u medicines with item codes' . ( $stock ? ' and your current stock' : '' ) . ')</p>';
@@ -1045,6 +1064,7 @@ function d4u_ph_view_connect( $uid, $boss ) {
 		array( 'GET orders/{id}', 'One order: customer, address, PIN, items with item code, qty, MRP, amount, payment, your stock.' ),
 		array( 'POST orders/{id}/packed', 'Mark packed and ready for the rider. Body <code>{"bill_no":"A-1043"}</code> (optional).' ),
 		array( 'POST orders/{id}/prescription', 'Body <code>{"decision":"approve"}</code> or <code>{"decision":"reject","reason":"…"}</code>. The pharmacist must have read the prescription.' ),
+		array( 'POST orders/{id}/pass', 'You don’t have the medicines: the order goes to the next pharmacy near the customer. Body <code>{"reason":"…"}</code> (optional).' ),
 		array( 'GET medicines', 'All dawa4u medicines with item code, contents, pack, MRP, Rx and your stock.' ),
 		array( 'GET / POST stock', 'Read or send stock. Body <code>{"items":[{"sku":"d4u-…","qty":12}],"replace":false}</code>.' ),
 		array( 'GET me', 'Your shop name, PIN codes and order counts — to test the key.' ),

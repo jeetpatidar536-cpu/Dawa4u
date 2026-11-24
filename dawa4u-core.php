@@ -20,6 +20,7 @@ define( 'D4U_VER', '1.2.0' );
 define( 'D4U_FILE', __FILE__ );
 define( 'D4U_DIR', plugin_dir_path( __FILE__ ) );
 define( 'D4U_URL', plugin_dir_url( __FILE__ ) );
+define( 'D4U_STOCK_DAYS', 3 ); // stock uploaded longer ago than this is not used to choose a pharmacy
 
 add_action( 'before_woocommerce_init', function () {
 	if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {

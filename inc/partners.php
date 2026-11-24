@@ -128,7 +128,7 @@ add_action( 'template_redirect', function () {
 	if ( ! wp_verify_nonce( $nonce, 'd4u_' . $action ) ) {
 		d4u_back( 'This page was open too long. Please try again.', 'error' );
 	}
-	$allowed = array( 'login', 'register_pharmacy', 'register_rider', 'resend', 'contact', 'rx_request', 'ph_open', 'ph_profile', 'ph_rx', 'ph_packed', 'ph_fill', 'ph_key', 'ph_hook', 'ph_stock', 'rd_online', 'rd_profile', 'rd_take', 'rd_picked', 'rd_delivered' );
+	$allowed = array( 'login', 'register_pharmacy', 'register_rider', 'resend', 'contact', 'rx_request', 'ph_open', 'ph_profile', 'ph_rx', 'ph_packed', 'ph_fill', 'ph_key', 'ph_hook', 'ph_stock', 'ph_pass', 'rd_online', 'rd_profile', 'rd_take', 'rd_picked', 'rd_delivered' );
 	$fn      = 'd4u_do_' . $action;
 	if ( in_array( $action, $allowed, true ) && function_exists( $fn ) ) {
 		call_user_func( $fn );

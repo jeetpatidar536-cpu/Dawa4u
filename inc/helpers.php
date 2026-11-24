@@ -160,25 +160,110 @@ function d4u_partners( $role, $status = 'approved' ) {
 	return get_users( $args );
 }
 
-/** The pharmacy that delivers to a PIN (open ones first). 0 = none. */
-function d4u_find_pharmacy( $pin ) {
+/** Approved pharmacies that deliver to a PIN. */
+function d4u_pharmacies_for_pin( $pin ) {
 	$pin = preg_replace( '/\D/', '', (string) $pin );
 	if ( 6 !== strlen( $pin ) ) {
-		return 0;
+		return array();
 	}
-	$closed = 0;
+	$out = array();
 	foreach ( d4u_partners( 'd4u_pharmacy' ) as $u ) {
-		if ( ! in_array( $pin, d4u_pins( $u->ID ), true ) ) {
+		if ( in_array( $pin, d4u_pins( $u->ID ), true ) ) {
+			$out[] = (int) $u->ID;
+		}
+	}
+	return $out;
+}
+
+/** Stock counts only while it is fresh: a file uploaded a week ago says little about today. */
+function d4u_stock_fresh( $uid ) {
+	$at = (int) get_user_meta( $uid, 'd4u_stock_at', true );
+	return $at && ( time() - $at ) <= D4U_STOCK_DAYS * DAY_IN_SECONDS;
+}
+
+/**
+ * Does a pharmacy have these medicines? $need = [ sku => qty ].
+ * full = everything in stock · partial = some · none = nothing · unknown = no recent stock from this pharmacy.
+ */
+function d4u_stock_match( $uid, $need ) {
+	if ( ! $need ) {
+		return 'unknown';
+	}
+	if ( ! function_exists( 'd4u_stock' ) || ! d4u_stock_fresh( $uid ) ) {
+		return 'unknown';
+	}
+	$stock = d4u_stock( $uid );
+	$have  = 0;
+	foreach ( $need as $sku => $qty ) {
+		if ( isset( $stock[ $sku ] ) && (int) $stock[ $sku ]['qty'] >= max( 1, (int) $qty ) ) {
+			$have++;
+		}
+	}
+	return $have === count( $need ) ? 'full' : ( $have ? 'partial' : 'none' );
+}
+
+/** Medicines an order needs: [ sku => qty ] (no dawaPass). */
+function d4u_order_need( $order ) {
+	$need = array();
+	foreach ( $order->get_items() as $item ) {
+		$p = $item->get_product();
+		if ( ! $p || ! $p->get_sku() || d4u_is_pass_product( $item->get_product_id() ) ) {
 			continue;
 		}
-		if ( 'yes' === get_user_meta( $u->ID, 'd4u_open', true ) ) {
-			return $u->ID;
-		}
-		if ( ! $closed ) {
-			$closed = $u->ID;
-		}
+		$need[ $p->get_sku() ] = ( isset( $need[ $p->get_sku() ] ) ? $need[ $p->get_sku() ] : 0 ) + (int) $item->get_quantity();
 	}
-	return $closed;
+	return $need;
+}
+
+/**
+ * Every pharmacy that delivers to the PIN, best first:
+ * open and has everything in stock → open, stock not shared → open, has some → closed but has everything → the rest.
+ * Same rank: the one with fewer orders waiting goes first. $skip = pharmacies that already said no.
+ *
+ * @return array [ [ 'id' => uid, 'open' => bool, 'stock' => full|partial|none|unknown ], ... ]
+ */
+function d4u_rank_pharmacies( $pin, $need = array(), $skip = array() ) {
+	$skip  = array_map( 'intval', (array) $skip );
+	$score = array( 'full' => 3, 'unknown' => 2, 'partial' => 1, 'none' => 0 );
+	$list  = array();
+	foreach ( d4u_pharmacies_for_pin( $pin ) as $uid ) {
+		if ( in_array( $uid, $skip, true ) ) {
+			continue;
+		}
+		$open   = 'yes' === get_user_meta( $uid, 'd4u_open', true );
+		$stock  = d4u_stock_match( $uid, $need );
+		$load   = function_exists( 'd4u_ph_query' ) ? count( d4u_ph_query( $uid, array( 'd4u-rx', 'processing', 'd4u-request' ), array( 'return' => 'ids' ) ) ) : 0;
+		$list[] = array(
+			'id'    => $uid,
+			'open'  => $open,
+			'stock' => $stock,
+			'rank'  => ( $open ? 25 : 0 ) + 10 * $score[ $stock ],
+			'load'  => $load,
+		);
+	}
+	usort( $list, function ( $a, $b ) {
+		if ( $a['rank'] !== $b['rank'] ) {
+			return $b['rank'] - $a['rank'];
+		}
+		return $a['load'] - $b['load'];
+	} );
+	return $list;
+}
+
+/** The best pharmacy for a PIN (and these medicines). 0 = none. */
+function d4u_find_pharmacy( $pin, $need = array(), $skip = array() ) {
+	$list = d4u_rank_pharmacies( $pin, $need, $skip );
+	return $list ? (int) $list[0]['id'] : 0;
+}
+
+function d4u_stock_words( $stock ) {
+	$w = array(
+		'full'    => 'has everything in stock',
+		'partial' => 'has some of the medicines in stock',
+		'none'    => 'has none of the medicines in stock',
+		'unknown' => 'has not shared stock',
+	);
+	return isset( $w[ $stock ] ) ? $w[ $stock ] : '';
 }
 
 /** Should checkout refuse PINs no pharmacy covers? */
@@ -257,10 +342,12 @@ function d4u_prepare_order( $order ) {
 		$order->update_meta_data( '_d4u_code', d4u_new_code() );
 	}
 	if ( ! $order->get_meta( '_d4u_pharmacy' ) && ! d4u_order_only_pass( $order ) ) {
-		$ph = d4u_find_pharmacy( d4u_order_pin( $order ) );
-		if ( $ph ) {
+		$need = d4u_order_need( $order );
+		$list = d4u_rank_pharmacies( d4u_order_pin( $order ), $need );
+		if ( $list ) {
+			$ph = (int) $list[0]['id'];
 			$order->update_meta_data( '_d4u_pharmacy', $ph );
-			$order->add_order_note( sprintf( 'Sent to %s (PIN %s).', d4u_partner_name( $ph ), d4u_order_pin( $order ) ) );
+			$order->add_order_note( sprintf( 'Checked %d pharmac%s for PIN %s. Sent to %s%s.', count( $list ), 1 === count( $list ) ? 'y' : 'ies', d4u_order_pin( $order ), d4u_partner_name( $ph ), $need ? ' — ' . d4u_stock_words( $list[0]['stock'] ) : '' ) );
 		} else {
 			$order->add_order_note( 'No partner pharmacy covers PIN ' . d4u_order_pin( $order ) . ' yet — choose one in the dawa4u box on this order.' );
 		}

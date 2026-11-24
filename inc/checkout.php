@@ -153,6 +153,55 @@ add_action( 'woocommerce_single_product_summary', function () {
 	}
 }, 25 );
 
+/* ------------------------------------------------------------------ "Is it available near me?" — checks every pharmacy for the PIN */
+
+/** What we can honestly say about one medicine at one PIN. */
+function d4u_availability( $product, $pin ) {
+	$pin = preg_replace( '/\D/', '', (string) $pin );
+	if ( 6 !== strlen( $pin ) ) {
+		return array( 'state' => 'bad', 'text' => 'Enter your 6-digit PIN code.' );
+	}
+	$list = d4u_rank_pharmacies( $pin, array( $product->get_sku() => 1 ) );
+	if ( ! $list ) {
+		return array( 'state' => 'none', 'text' => sprintf( 'We don’t deliver to %s yet. We are adding pharmacies every week.', $pin ) );
+	}
+	$have = 0;
+	$open = 0;
+	$know = 0;
+	foreach ( $list as $p ) {
+		$have += 'full' === $p['stock'] ? 1 : 0;
+		$know += 'unknown' === $p['stock'] ? 0 : 1;
+		$open += $p['open'] ? 1 : 0;
+	}
+	$n = count( $list );
+	if ( $have ) {
+		return array( 'state' => 'yes', 'text' => sprintf( 'In stock at %d of %d pharmac%s delivering to %s.', $have, $n, 1 === $n ? 'y' : 'ies', $pin ) );
+	}
+	if ( $know === $n ) {
+		return array( 'state' => 'out', 'text' => sprintf( 'Out of stock at the %d pharmac%s near %s right now. You can still order — we ask every pharmacy near you, and tell you if none has it.', $n, 1 === $n ? 'y' : 'ies', $pin ) );
+	}
+	return array( 'state' => 'maybe', 'text' => sprintf( '%d pharmac%s deliver%s to %s. If the first one doesn’t have it, your order goes to the next one.', $n, 1 === $n ? 'y' : 'ies', 1 === $n ? 's' : '', $pin ) . ( $open ? '' : ' (All are closed right now.)' ) );
+}
+
+add_action( 'wc_ajax_d4u_avail', function () {
+	nocache_headers();
+	$product = wc_get_product( isset( $_GET['product'] ) ? absint( $_GET['product'] ) : 0 ); // phpcs:ignore
+	if ( ! $product || 'publish' !== $product->get_status() || d4u_is_pass_product( $product->get_id() ) ) {
+		wp_send_json_error( null, 404 );
+	}
+	wp_send_json_success( d4u_availability( $product, isset( $_GET['pin'] ) ? sanitize_text_field( wp_unslash( $_GET['pin'] ) ) : '' ) ); // phpcs:ignore
+} );
+
+add_action( 'woocommerce_single_product_summary', function () {
+	global $product;
+	if ( ! $product || d4u_is_pass_product( $product->get_id() ) || ! d4u_partners( 'd4u_pharmacy' ) ) {
+		return;
+	}
+	$url = add_query_arg( 'product', $product->get_id(), WC_AJAX::get_endpoint( 'd4u_avail' ) );
+	echo '<form class="d4u-avail" data-url="' . esc_url( $url ) . '" novalidate><label for="d4u-avail-pin">Check near you</label><div class="d4u-avail__row"><input id="d4u-avail-pin" name="pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Your PIN code" autocomplete="postal-code"><button type="submit" class="button">Check</button></div><p class="d4u-avail__msg" role="status" aria-live="polite"></p></form>';
+	echo "<script>(function(){var f=document.querySelector('.d4u-avail');if(!f)return;var i=f.querySelector('input'),m=f.querySelector('.d4u-avail__msg');function go(){var p=(i.value||'').replace(/\\D/g,'');if(p.length!==6){m.className='d4u-avail__msg is-bad';m.textContent='Enter your 6-digit PIN code.';return}try{localStorage.setItem('d4u-pin',p)}catch(e){}m.className='d4u-avail__msg';m.textContent='Checking every pharmacy near '+p+'…';fetch(f.dataset.url+'&pin='+p,{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(r){if(!r||!r.success)throw 0;m.className='d4u-avail__msg is-'+r.data.state;m.textContent=r.data.text}).catch(function(){m.className='d4u-avail__msg is-bad';m.textContent='Could not check right now. Please try again.'})}f.addEventListener('submit',function(e){e.preventDefault();go()});try{var s=localStorage.getItem('d4u-pin');if(s){i.value=s;go()}}catch(e){}})();</script>";
+}, 26 );
+
 add_filter( 'woocommerce_cart_item_name', function ( $name, $item ) {
 	if ( ! empty( $item['data'] ) && d4u_needs_rx( $item['data'] ) ) {
 		$name .= ' <span class="d4u-rx-tag">Needs prescription</span>';
