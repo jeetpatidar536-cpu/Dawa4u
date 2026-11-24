@@ -20,6 +20,23 @@
     applyTheme(m);
   });
 
+  /* ---------- copy buttons (API key, address, message) ---------- */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-copy]');
+    if (!b) return;
+    var text = b.getAttribute('data-copy'), label = b.textContent;
+    function done(ok) { b.textContent = ok ? 'Copied ✓' : 'Select and copy'; setTimeout(function () { b.textContent = label; }, 1800); }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    } else {
+      var t = document.createElement('textarea');
+      t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (x) {}
+      document.body.removeChild(t); done(ok);
+    }
+  });
+
   if (!cfg.poll || !cfg.counts) return;
 
   /* ---------- typing protection: never reload over a half-filled form ---------- */
@@ -32,7 +49,7 @@
   function busy() {
     var a = document.activeElement;
     return Date.now() - lastInput < 60000 ||
-      document.querySelector('form.d4u-dirty, details[open]') ||
+      document.querySelector('form.d4u-dirty, details[open], [data-d4p-stay]') ||
       (a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName));
   }
 

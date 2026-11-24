@@ -134,6 +134,7 @@ function d4u_ph_icon( $name ) {
 		'refresh'  => '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
 		'site'     => '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
 		'arrow'    => '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+		'plug'     => '<path d="M9 2v5M15 2v5"/><path d="M6 7h12v4a6 6 0 0 1-12 0z"/><path d="M12 17v5"/>',
 	);
 	return '<svg class="d4p-i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . ( isset( $p[ $name ] ) ? $p[ $name ] : '' ) . '</svg>';
 }
@@ -175,7 +176,7 @@ function d4u_ph_app() {
 	}
 
 	$tab   = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'home'; // phpcs:ignore
-	$tabs  = array( 'home', 'rx', 'pack', 'requests', 'rider', 'history', 'medicines', 'profile' );
+	$tabs  = array( 'home', 'rx', 'pack', 'requests', 'rider', 'history', 'medicines', 'connect', 'profile' );
 	$tab   = in_array( $tab, $tabs, true ) ? $tab : 'home';
 	$count = d4u_ph_counts( $uid );
 	$title = ( $count['action'] ? '(' . $count['action'] . ') ' : '' ) . 'Pharmacy · dawa4u';
@@ -188,6 +189,7 @@ function d4u_ph_app() {
 		'rider'     => array( 'With the rider', 'rider', $count['rider'] ),
 		'history'   => array( 'Order history', 'history', 0 ),
 		'medicines' => array( 'Medicine list', 'pill', 0 ),
+		'connect'   => array( 'Billing software', 'plug', 0 ),
 		'profile'   => array( $boss ? 'Partners' : 'Shop details', 'store', 0 ),
 	);
 
@@ -394,18 +396,23 @@ function d4u_ph_view_history( $uid ) {
 	return $out . '</tbody></table></div>';
 }
 
-function d4u_ph_view_medicines() {
+function d4u_ph_view_medicines( $uid = 0, $boss = false ) {
+	$stock = $boss ? array() : d4u_stock( $uid );
+	$show  = (bool) $stock;
 	$out   = d4u_ph_view_head( 'Medicine list', 'Everything customers can order, at MRP. Medicines marked Rx need a prescription that you check. To add a medicine or change a price, write to the dawa4u team.' );
+	if ( ! $boss && ! $show ) {
+		$out .= '<p class="d4u-small d4p-mute">Upload your stock from Marg or any billing software in <a href="' . esc_url( d4u_ph_url( 'connect' ) ) . '">Billing software</a> to see it here.</p>';
+	}
 	$terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true, 'meta_key' => 'order', 'orderby' => 'meta_value_num' ) ); // phpcs:ignore
 	foreach ( is_array( $terms ) ? $terms : array() as $t ) {
 		$prods = wc_get_products( array( 'status' => 'publish', 'limit' => 300, 'category' => array( $t->slug ), 'orderby' => 'title', 'order' => 'ASC' ) );
 		if ( ! $prods ) {
 			continue;
 		}
-		$out .= '<h2 class="d4p-h">' . esc_html( $t->name ) . ' <span class="d4p-mute">' . count( $prods ) . '</span></h2><div class="d4p-tablewrap"><table class="d4p-table"><thead><tr><th>Medicine</th><th>Contains · pack</th><th class="num">MRP</th></tr></thead><tbody>';
+		$out .= '<h2 class="d4p-h">' . esc_html( $t->name ) . ' <span class="d4p-mute">' . count( $prods ) . '</span></h2><div class="d4p-tablewrap"><table class="d4p-table"><thead><tr><th>Medicine</th><th>Contains · pack</th><th class="num">MRP</th>' . ( $show ? '<th class="num">Your stock</th>' : '' ) . '</tr></thead><tbody>';
 		foreach ( $prods as $p ) {
 			$line = trim( get_post_meta( $p->get_id(), '_d4u_salt', true ) . ' · ' . get_post_meta( $p->get_id(), '_d4u_pack', true ), ' ·' );
-			$out .= '<tr><td><strong>' . esc_html( $p->get_name() ) . '</strong>' . ( d4u_needs_rx( $p ) ? ' <span class="d4u-rx-tag">Rx</span>' : '' ) . '</td><td class="d4p-mute">' . esc_html( $line ) . '</td><td class="num">' . esc_html( d4u_inr( $p->get_price() ) ) . '</td></tr>';
+			$out .= '<tr><td><strong>' . esc_html( $p->get_name() ) . '</strong>' . ( d4u_needs_rx( $p ) ? ' <span class="d4u-rx-tag">Rx</span>' : '' ) . '</td><td class="d4p-mute">' . esc_html( $line ) . '</td><td class="num">' . esc_html( d4u_inr( $p->get_price() ) ) . '</td>' . ( $show ? '<td class="num">' . ( isset( $stock[ $p->get_sku() ] ) ? ( $stock[ $p->get_sku() ]['qty'] ? (int) $stock[ $p->get_sku() ]['qty'] : '<span class="d4u-stock is-low">0</span>' ) : '<span class="d4p-mute">—</span>' ) . '</td>' : '' ) . '</tr>';
 		}
 		$out .= '</tbody></table></div>';
 	}

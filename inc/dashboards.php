@@ -57,10 +57,15 @@ function d4u_items_html( $order ) {
 	if ( ! $items ) {
 		return '<p class="d4u-small">No medicines added yet.</p>';
 	}
-	$out = '<ul class="d4u-items">';
+	$ph    = (int) $order->get_meta( '_d4u_pharmacy' );
+	$stock = ( $ph && get_current_user_id() === $ph && function_exists( 'd4u_stock' ) ) ? d4u_stock( $ph ) : array(); // only the pharmacy sees its own stock
+	$out   = '<ul class="d4u-items">';
 	foreach ( $items as $item ) {
 		$p    = $item->get_product();
-		$out .= '<li><span>' . esc_html( $item->get_name() ) . ( $p && d4u_needs_rx( $p ) ? ' <span class="d4u-rx-tag">Rx</span>' : '' ) . '</span><b>× ' . esc_html( $item->get_quantity() ) . '</b></li>';
+		$sku  = $p ? $p->get_sku() : '';
+		$st   = ( $sku && isset( $stock[ $sku ] ) ) ? (int) $stock[ $sku ]['qty'] : null;
+		$tag  = null === $st ? '' : ' <span class="d4u-stock' . ( $st < $item->get_quantity() ? ' is-low' : '' ) . '">' . ( $st ? 'stock ' . $st : 'out of stock' ) . '</span>';
+		$out .= '<li><span>' . esc_html( $item->get_name() ) . ( $p && d4u_needs_rx( $p ) ? ' <span class="d4u-rx-tag">Rx</span>' : '' ) . $tag . '</span><b>× ' . esc_html( $item->get_quantity() ) . '</b></li>';
 	}
 	return $out . '</ul>';
 }
@@ -225,7 +230,7 @@ function d4u_ph_card( $o, $mode ) {
 		$out .= '<details class="d4u-reject"><summary>Reject</summary>' . d4u_form_open( 'ph_rx' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '"><input type="hidden" name="decision" value="reject"><label class="d4u-field"><span>Reason (the customer sees this)</span><input name="reason" required placeholder="e.g. prescription is older than 6 months"></label><button class="d4u-btn d4u-btn--danger" type="submit">Reject and cancel order</button></form></details>';
 		$out .= '</div>';
 	} else {
-		$out .= '<div class="d4u-actions">' . d4u_action_btn( 'ph_packed', $o, 'Packed — ready for pickup' ) . '</div>';
+		$out .= '<div class="d4u-actions">' . d4u_form_open( 'ph_packed', 'd4u-pack-form' ) . '<input type="hidden" name="order" value="' . esc_attr( $o->get_id() ) . '"><label class="d4u-field"><span>Your bill no. (optional)</span><input name="bill" maxlength="40" autocomplete="off" placeholder="e.g. from Marg"></label><button class="d4u-btn" type="submit">Packed — ready for pickup</button></form></div>';
 	}
 	return $out . '</article>';
 }
@@ -336,10 +341,7 @@ function d4u_do_ph_rx() {
 	$decision = isset( $_POST['decision'] ) ? sanitize_key( $_POST['decision'] ) : ''; // phpcs:ignore
 	$who      = d4u_partner_name( get_current_user_id() );
 	if ( 'approve' === $decision ) {
-		$order->update_meta_data( '_d4u_rx_state', 'approved' );
-		$order->update_meta_data( '_d4u_rx_by', get_current_user_id() );
-		$order->save();
-		$order->update_status( 'processing', 'Prescription approved by ' . $who . '.' );
+		d4u_ph_approve( $order, get_current_user_id() );
 		d4u_back( 'Approved. Order #' . $order->get_order_number() . ' is now in “To pack”.', 'ok' );
 	}
 	$reason = sanitize_text_field( isset( $_POST['reason'] ) ? wp_unslash( $_POST['reason'] ) : '' ); // phpcs:ignore
@@ -366,8 +368,27 @@ function d4u_reject_order( $order, $reason, $who ) {
 
 function d4u_do_ph_packed() {
 	$order = d4u_acting_order( '_d4u_pharmacy', array( 'processing' ) );
-	$order->update_status( 'd4u-ready', 'Packed by ' . d4u_partner_name( get_current_user_id() ) . '.' );
+	$bill  = isset( $_POST['bill'] ) ? sanitize_text_field( wp_unslash( $_POST['bill'] ) ) : ''; // phpcs:ignore
+	d4u_ph_packed( $order, get_current_user_id(), $bill );
 	d4u_back( 'Order #' . $order->get_order_number() . ' is ready for pickup. Nearby riders were told.', 'ok' );
+}
+
+/** Prescription approved: the order goes to packing. Used by the dashboard and the API. */
+function d4u_ph_approve( $order, $uid ) {
+	$order->update_meta_data( '_d4u_rx_state', 'approved' );
+	$order->update_meta_data( '_d4u_rx_by', (int) $uid );
+	$order->save();
+	$order->update_status( 'processing', 'Prescription approved by ' . d4u_partner_name( $uid ) . '.' );
+}
+
+/** Packed: riders nearby are told. $bill = the pharmacy's own bill number (e.g. from Marg), optional. */
+function d4u_ph_packed( $order, $uid, $bill = '' ) {
+	$bill = substr( trim( (string) $bill ), 0, 40 );
+	if ( '' !== $bill ) {
+		$order->update_meta_data( '_d4u_bill_no', $bill );
+		$order->save();
+	}
+	$order->update_status( 'd4u-ready', 'Packed by ' . d4u_partner_name( $uid ) . ( '' !== $bill ? ' (bill ' . $bill . ')' : '' ) . '.' );
 }
 
 function d4u_do_ph_fill() {
