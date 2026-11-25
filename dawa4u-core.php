@@ -3,7 +3,7 @@
  * Plugin Name:       dawa4u core
  * Plugin URI:        https://dawa4u.in/
  * Description:       dawa4u on WooCommerce: the medicine list, prescriptions checked by a licensed pharmacist, dawaPass (₹100 a month), delivery charges, the pharmacy and rider dashboards, and links to pharmacy billing software (Marg and others).
- * Version:           1.2.0
+ * Version:           1.2.1
  * Requires at least: 6.3
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'D4U_VER', '1.2.0' );
+define( 'D4U_VER', '1.2.1' );
 define( 'D4U_FILE', __FILE__ );
 define( 'D4U_DIR', plugin_dir_path( __FILE__ ) );
 define( 'D4U_URL', plugin_dir_url( __FILE__ ) );
