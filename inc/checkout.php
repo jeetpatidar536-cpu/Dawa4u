@@ -398,6 +398,22 @@ add_filter( 'woocommerce_payment_complete_order_status', function ( $status, $or
 	return $status;
 }, 10, 3 );
 
+// Online payment (Cashfree: UPI, cards, net banking) first at checkout, then the rest.
+add_filter( 'woocommerce_available_payment_gateways', function ( $gateways ) {
+	if ( is_array( $gateways ) && isset( $gateways['cashfree'] ) ) {
+		$gateways = array( 'cashfree' => $gateways['cashfree'] ) + $gateways;
+	}
+	return $gateways;
+}, 20 );
+
+// Customers know "UPI", not "Cashfree": clearer words, unless the owner wrote their own in the settings.
+add_filter( 'woocommerce_gateway_title', function ( $title, $id = '' ) {
+	return ( 'cashfree' === $id && in_array( trim( (string) $title ), array( '', 'Cashfree', 'Cashfree Payments' ), true ) ) ? 'Pay now — UPI, card or net banking' : $title;
+}, 10, 2 );
+add_filter( 'woocommerce_gateway_description', function ( $desc, $id = '' ) {
+	return ( 'cashfree' === $id && ( '' === trim( (string) $desc ) || false !== stripos( $desc, 'via Cashfree' ) ) ) ? 'GPay, PhonePe, Paytm or any UPI app, debit or credit card, or net banking. Secured by Cashfree.' : $desc;
+}, 10, 2 );
+
 // UPI payments are confirmed by hand (On hold → Processing). Then the same rules apply.
 add_action( 'woocommerce_order_status_on-hold_to_processing', function ( $order_id, $order = null ) {
 	if ( ! $order instanceof WC_Order ) {

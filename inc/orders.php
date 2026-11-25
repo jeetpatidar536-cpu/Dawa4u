@@ -338,6 +338,7 @@ add_action( 'woocommerce_order_details_before_order_table', function ( $order ) 
 	echo d4u_track_steps( $order ); // phpcs:ignore -- escaped inside
 
 	$msg = '';
+	$pay = false;
 	switch ( $s ) {
 		case 'd4u-request':
 			$msg = 'A licensed pharmacist is reading your prescription. We will email you the medicines and the price — you pay only after that.';
@@ -348,7 +349,10 @@ add_action( 'woocommerce_order_details_before_order_table', function ( $order ) 
 		case 'pending':
 			if ( 'approved' === $order->get_meta( '_d4u_rx_state' ) && $order->get_item_count() ) {
 				$msg = 'Your pharmacist added your medicines. Check the list below, then pay to get them delivered.';
-				echo '<p><a class="button d4u-btn-gold" href="' . esc_url( $order->get_checkout_payment_url() ) . '">Pay ' . wp_kses_post( wc_price( $order->get_total() ) ) . '</a></p>';
+				$pay = true;
+			} elseif ( $order->needs_payment() && 'cod' !== $order->get_payment_method() && $order->get_item_count() ) {
+				$msg = 'Your payment didn’t finish, so this order is waiting. Try paying again with the button below. If money already left your account, write to us from Help and we’ll sort it out.';
+				$pay = true;
 			}
 			break;
 		case 'on-hold':
@@ -372,12 +376,15 @@ add_action( 'woocommerce_order_details_before_order_table', function ( $order ) 
 			break;
 		case 'cancelled':
 			if ( 'rejected' === $order->get_meta( '_d4u_rx_state' ) ) {
-				$msg = 'The pharmacist could not accept the prescription' . ( $order->get_meta( '_d4u_rx_reason' ) ? ': ' . $order->get_meta( '_d4u_rx_reason' ) : '' ) . '. If you paid online, the money goes back to you in 3–5 working days.';
+				$msg = 'The pharmacist could not accept the prescription' . ( $order->get_meta( '_d4u_rx_reason' ) ? ': ' . $order->get_meta( '_d4u_rx_reason' ) : '' ) . '. If you paid online, the money goes back to the card, UPI or bank account you paid with — banks can take up to 7 working days.';
 			}
 			break;
 	}
 	if ( $msg ) {
 		echo '<p class="d4u-track__msg">' . esc_html( $msg ) . '</p>';
+	}
+	if ( $pay ) {
+		echo '<p><a class="button d4u-btn-gold" href="' . esc_url( $order->get_checkout_payment_url() ) . '">Pay ' . wp_kses_post( wc_price( $order->get_total() ) ) . '</a></p>';
 	}
 	if ( $order->has_status( array( 'processing', 'd4u-ready', 'd4u-out' ) ) && $order->get_meta( '_d4u_code' ) ) {
 		echo '<p class="d4u-code">Delivery code <strong>' . esc_html( $order->get_meta( '_d4u_code' ) ) . '</strong><span>Tell this to the rider when your order arrives.</span></p>';

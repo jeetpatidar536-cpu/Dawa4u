@@ -371,12 +371,49 @@ function d4u_reject_order( $order, $reason, $who ) {
 	$order->update_status( 'cancelled', 'Prescription not accepted by ' . $who . ': ' . $reason );
 	$html = '<p>We’re sorry — the pharmacist could not accept your prescription for order #' . esc_html( $order->get_order_number() ) . '.</p><p><strong>Reason:</strong> ' . esc_html( $reason ) . '</p>';
 	if ( $paid_online ) {
-		$html .= '<p>Your payment of ' . wp_kses_post( wc_price( $order->get_total() ) ) . ' will be refunded to your original payment method in 3–5 working days.</p>';
-		$order->add_order_note( 'REFUND DUE: ' . wp_strip_all_tags( wc_price( $order->get_total() ) ) . ' — paid online, order cancelled.' );
-		d4u_mail( get_option( 'admin_email' ), 'Refund due — order #' . $order->get_order_number(), 'Refund due', '<p>Order #' . esc_html( $order->get_order_number() ) . ' was paid online and then cancelled (prescription not accepted). Please refund ' . wp_kses_post( wc_price( $order->get_total() ) ) . '.</p><p><a href="' . esc_url( $order->get_edit_order_url() ) . '">Open the order</a></p>' );
+		$done = d4u_refund_online( $order, 'Prescription not accepted: ' . $reason );
+		if ( true === $done ) {
+			$html .= '<p>We have refunded ' . wp_kses_post( wc_price( $order->get_total() ) ) . ' to the card, UPI or bank account you paid with. Banks can take up to 7 working days to show it.</p>';
+		} else {
+			$html .= '<p>Your payment of ' . wp_kses_post( wc_price( $order->get_total() ) ) . ' will be refunded to your original payment method within 3–5 working days.</p>';
+			$order->add_order_note( 'REFUND DUE: ' . wp_strip_all_tags( wc_price( $order->get_total() ) ) . ' — paid online, order cancelled.' . ( is_wp_error( $done ) ? ' Automatic refund failed: ' . $done->get_error_message() : '' ) );
+			d4u_mail( get_option( 'admin_email' ), 'Refund due — order #' . $order->get_order_number(), 'Refund due', '<p>Order #' . esc_html( $order->get_order_number() ) . ' was paid online and then cancelled (prescription not accepted). Please refund ' . wp_kses_post( wc_price( $order->get_total() ) ) . ' — use the Refund button in the order.</p>' . ( is_wp_error( $done ) ? '<p>The automatic refund failed: ' . esc_html( $done->get_error_message() ) . '</p>' : '' ) . '<p><a href="' . esc_url( $order->get_edit_order_url() ) . '">Open the order</a></p>' );
+		}
 	}
 	$html .= '<p>You can send a new prescription any time from <a href="' . esc_url( d4u_page_url( 'rx' ) ) . '">Upload prescription</a>.</p>';
 	d4u_mail( $order->get_billing_email(), 'About your order #' . $order->get_order_number(), 'Prescription not accepted', $html );
+}
+
+/**
+ * Give an online payment back through the payment gateway (Cashfree does refunds).
+ * The order stays "Cancelled" — WooCommerce would otherwise switch it to "Refunded".
+ *
+ * @return true|WP_Error|false false = this payment method can't refund by itself (manual UPI)
+ */
+function d4u_refund_online( $order, $reason ) {
+	$gw = wc_get_payment_gateway_by_order( $order );
+	if ( ! $gw || ! $gw->supports( 'refunds' ) || ! $order->get_transaction_id() ) {
+		return false;
+	}
+	$amount = (float) $order->get_total() - (float) $order->get_total_refunded();
+	if ( $amount <= 0 ) {
+		return true;
+	}
+	$keep = '__return_false'; // leave the status as it is
+	add_filter( 'woocommerce_order_fully_refunded_status', $keep );
+	$refund = wc_create_refund( array(
+		'order_id'       => $order->get_id(),
+		'amount'         => $amount,
+		'reason'         => $reason,
+		'refund_payment' => true,
+		'restock_items'  => false,
+	) );
+	remove_filter( 'woocommerce_order_fully_refunded_status', $keep );
+	if ( is_wp_error( $refund ) ) {
+		return $refund;
+	}
+	$order->add_order_note( 'Refunded ' . wp_strip_all_tags( wc_price( $amount ) ) . ' through ' . $gw->get_method_title() . '.' );
+	return true;
 }
 
 function d4u_do_ph_packed() {
