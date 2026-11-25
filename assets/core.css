@@ -129,3 +129,21 @@
 :root[data-theme="dark"] .d4u-avail__msg.is-out, :root[data-theme="dark"] .d4u-avail__msg.is-none { color: #FCD34D; }
 :root[data-theme="dark"] .d4u-avail__msg.is-bad { color: #FCA5A5; }
 .d4u-pass .d4u-btn { margin-top: 4px; }
+
+/* UPI QR popup (UPI QR Code Payment Gateway plugin): its box is always white, so its text must be dark —
+   in the site's dark mode it was taking the light page text colour and could not be read. Brand colours too. */
+.jconfirm { --upiwc-theme-color: #15370D; }
+.jconfirm .jconfirm-box-container .jconfirm-box,
+.jconfirm .jconfirm-box .jconfirm-content,
+.jconfirm .jconfirm-box .upiwc-payment-content,
+.jconfirm .jconfirm-box .upiwc-payment-info,
+.jconfirm .jconfirm-box .upiwc-payment-info-text,
+.jconfirm .jconfirm-box .upiwc-payment-hint,
+.jconfirm .jconfirm-box .upiwc-payment-btn,
+.jconfirm .jconfirm-box .upiwc-payment-confirm,
+.jconfirm .jconfirm-box .upiwc-payment-confirm label { color: #171A1E; }
+.jconfirm .jconfirm-box .upiwc-payment-content .upiwc-payment-actions .upiwc-payment-upi-id { color: #15370D; background-color: #EEF4EA; font-size: 13px; letter-spacing: .02em; }
+.jconfirm .jconfirm-box .upiwc-payment-confirm input[type=text] { color: #171A1E; background: #fff; }
+.jconfirm .jconfirm-box .upiwc-report-fraud-link,
+.jconfirm .jconfirm-box .upiwc-report-fraud-link a { color: #4B5563; }
+.jconfirm .jconfirm-box .jconfirm-buttons .btn.upiwc-amount { color: #171A1E !important; }
