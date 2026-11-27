@@ -1,0 +1,18 @@
+{
+  "appId": "in.dawa4u.app",
+  "appName": "dawa4u",
+  "webDir": "www",
+  "appendUserAgent": "dawa4uApp/customer",
+  "server": {
+    "url": "https://dawa4u.in/",
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "*"
+    ]
+  },
+  "android": {
+    "backgroundColor": "#0B1708",
+    "allowMixedContent": false
+  }
+}

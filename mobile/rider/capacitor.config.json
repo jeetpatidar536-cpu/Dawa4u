@@ -1,0 +1,19 @@
+{
+  "appId": "in.dawa4u.rider",
+  "appName": "dawa4u Rider",
+  "webDir": "www",
+  "appendUserAgent": "dawa4uApp/rider",
+  "server": {
+    "url": "https://dawa4u.in/rider-dashboard/",
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "dawa4u.in",
+      "*.dawa4u.in"
+    ]
+  },
+  "android": {
+    "backgroundColor": "#0B1708",
+    "allowMixedContent": false
+  }
+}
