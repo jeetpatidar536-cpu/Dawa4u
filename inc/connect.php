@@ -223,16 +223,24 @@ function d4u_parse_stock_rows( $rows ) {
 	$cs   = -1;
 	$cn   = -1;
 	$cq   = -1;
+	$cb   = -1;
+	$ce   = -1;
 	foreach ( array_slice( $rows, 0, 25, true ) as $i => $r ) {
 		$s = -1;
 		$n = -1;
 		$q = -1;
+		$b = -1;
+		$e = -1;
 		foreach ( $r as $j => $cell ) {
 			$h = $norm( $cell );
 			if ( '' === $h ) {
 				continue;
 			}
-			if ( $s < 0 && in_array( $h, $sku_names, true ) ) {
+			if ( $b < 0 && in_array( $h, array( 'batch', 'batchno', 'batchnumber', 'bno', 'batchnum', 'lot', 'lotno' ), true ) ) {
+				$b = $j;
+			} elseif ( $e < 0 && ( 0 === strpos( $h, 'exp' ) ) ) {
+				$e = $j;
+			} elseif ( $s < 0 && in_array( $h, $sku_names, true ) ) {
 				$s = $j;
 			} elseif ( $n < 0 && in_array( $h, $name_names, true ) ) {
 				$n = $j;
@@ -241,7 +249,7 @@ function d4u_parse_stock_rows( $rows ) {
 			}
 		}
 		if ( $q >= 0 && ( $s >= 0 || $n >= 0 ) ) {
-			list( $head, $cs, $cn, $cq ) = array( $i, $s, $n, $q );
+			list( $head, $cs, $cn, $cq, $cb, $ce ) = array( $i, $s, $n, $q, $b, $e );
 			break;
 		}
 	}
@@ -269,6 +277,7 @@ function d4u_parse_stock_rows( $rows ) {
 	}
 
 	$stock   = array();
+	$raw     = array();
 	$missed  = array();
 	$matched = 0;
 	foreach ( array_slice( $rows, $head + 1 ) as $r ) {
@@ -298,7 +307,14 @@ function d4u_parse_stock_rows( $rows ) {
 			continue;
 		}
 		$matched++;
-		$stock[ $sku ] = array( 'qty' => ( isset( $stock[ $sku ] ) ? $stock[ $sku ]['qty'] : 0 ) + $qty );
+		$raw[ $sku ][] = array(
+			'n' => $cb >= 0 && isset( $r[ $cb ] ) ? trim( (string) $r[ $cb ] ) : '',
+			'e' => $ce >= 0 && isset( $r[ $ce ] ) ? d4u_parse_expiry( $r[ $ce ] ) : '',
+			'q' => $qty,
+		);
+	}
+	foreach ( $raw as $sku => $batches ) { // several batches of one medicine add up; expired ones don't count
+		$stock[ $sku ] = d4u_stock_entry( $batches );
 	}
 	return array( $stock, array_values( array_unique( $missed ) ), $matched );
 }
@@ -681,7 +697,19 @@ add_action( 'rest_api_init', function () {
 						}
 						continue;
 					}
-					$stock[ $sku ] = array( 'qty' => max( 0, (int) floor( (float) $it['qty'] ) ) );
+					if ( ! empty( $it['batches'] ) && is_array( $it['batches'] ) ) {
+						$bs = array();
+						foreach ( array_slice( $it['batches'], 0, 50 ) as $b ) {
+							$bs[] = array(
+								'n' => isset( $b['batch'] ) ? sanitize_text_field( (string) $b['batch'] ) : '',
+								'e' => isset( $b['expiry'] ) ? d4u_parse_expiry( $b['expiry'] ) : '',
+								'q' => isset( $b['qty'] ) && is_numeric( $b['qty'] ) ? (int) floor( (float) $b['qty'] ) : 0,
+							);
+						}
+						$stock[ $sku ] = d4u_stock_entry( $bs );
+					} else {
+						$stock[ $sku ] = array( 'qty' => max( 0, (int) floor( (float) $it['qty'] ) ) );
+					}
 					$n++;
 				}
 				d4u_stock_save( $uid, $stock, 'api' );
@@ -790,9 +818,19 @@ add_action( 'template_redirect', function () {
 
 	if ( 'stock_template' === $what && ! $boss ) {
 		$stock = d4u_stock( $uid );
-		$rows  = array( array( 'Item code', 'Medicine', 'Contains', 'Pack', 'MRP', 'Stock' ) );
+		$rows  = array( array( 'Item code', 'Medicine', 'Contains', 'Pack', 'MRP', 'Batch', 'Expiry', 'Stock' ) );
 		foreach ( d4u_sellable_products() as $sku => $p ) {
-			$rows[] = array( $sku, $p->get_name(), get_post_meta( $p->get_id(), '_d4u_salt', true ), get_post_meta( $p->get_id(), '_d4u_pack', true ), (float) $p->get_price(), isset( $stock[ $sku ] ) ? (int) $stock[ $sku ]['qty'] : '' );
+			$base = array( $sku, $p->get_name(), get_post_meta( $p->get_id(), '_d4u_salt', true ), get_post_meta( $p->get_id(), '_d4u_pack', true ), (float) $p->get_price() );
+			$bs   = isset( $stock[ $sku ]['b'] ) ? array_filter( $stock[ $sku ]['b'], function ( $b ) {
+				return '' !== $b['n'] || '' !== $b['e'];
+			} ) : array();
+			if ( $bs ) {
+				foreach ( $bs as $b ) { // one line per batch, so the file can go straight back in tomorrow
+					$rows[] = array_merge( $base, array( $b['n'], '' !== $b['e'] ? substr( $b['e'], 5, 2 ) . '/' . substr( $b['e'], 0, 4 ) : '', (int) $b['q'] ) );
+				}
+			} else {
+				$rows[] = array_merge( $base, array( '', '', isset( $stock[ $sku ] ) ? (int) $stock[ $sku ]['qty'] : '' ) );
+			}
 		}
 		d4u_csv_out( 'dawa4u-stock.csv', $rows );
 	}
@@ -1022,7 +1060,7 @@ function d4u_ph_view_connect( $uid, $boss ) {
 		$out .= '<p class="d4p-conn__status"><span class="d4p-dot"></span>No stock uploaded yet</p>';
 	}
 	$out .= '<p class="d4u-small"><strong>Why it matters:</strong> when a customer orders, dawa4u checks every pharmacy that delivers to them and sends the order to one that has the medicines in stock. Upload at least once a day (stock older than ' . (int) D4U_STOCK_DAYS . ' days is ignored), or link your software below to keep it current.</p>';
-	$out .= '<p class="d4u-small">In Marg: Reports → Stock → export to Excel. Any file with an item name (or our item code) and a stock/qty column works — several batches of one medicine are added up. Uploading replaces the old stock.</p>';
+	$out .= '<p class="d4u-small">In Marg: Reports → Stock → export to Excel. Any file with an item name (or our item code) and a stock/qty column works — several batches of one medicine are added up. Include the <strong>Batch</strong> and <strong>Expiry</strong> columns and dawa4u tells the packer which batch to pick first, skips expired stock and warns you about stock that expires soon. Uploading replaces the old stock.</p>';
 	$out .= d4u_form_open( 'ph_stock', 'd4p-upload', true ) . '<input type="hidden" name="op" value="upload"><label class="d4u-field"><span>Stock file (CSV or Excel .xlsx)</span><input type="file" name="stock" accept=".csv,.xlsx,.xls,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></label><button class="d4u-btn" type="submit">Upload stock</button></form>';
 	$out .= '<p class="d4u-small"><a href="' . esc_url( d4u_export_url( 'stock_template' ) ) . '">Download the stock template</a> (all dawa4u medicines with item codes' . ( $stock ? ' and your current stock' : '' ) . ')</p>';
 	$missed = get_transient( 'd4u_stockmiss_' . $uid );
@@ -1066,7 +1104,7 @@ function d4u_ph_view_connect( $uid, $boss ) {
 		array( 'POST orders/{id}/prescription', 'Body <code>{"decision":"approve"}</code> or <code>{"decision":"reject","reason":"…"}</code>. The pharmacist must have read the prescription.' ),
 		array( 'POST orders/{id}/pass', 'You don’t have the medicines: the order goes to the next pharmacy near the customer. Body <code>{"reason":"…"}</code> (optional).' ),
 		array( 'GET medicines', 'All dawa4u medicines with item code, contents, pack, MRP, Rx and your stock.' ),
-		array( 'GET / POST stock', 'Read or send stock. Body <code>{"items":[{"sku":"d4u-…","qty":12}],"replace":false}</code>.' ),
+		array( 'GET / POST stock', 'Read or send stock. Body <code>{"items":[{"sku":"d4u-…","qty":12}],"replace":false}</code>. Add <code>"batches":[{"batch":"A12","expiry":"2027-12","qty":12}]</code> to an item so the packer is told which batch to pick first.' ),
 		array( 'GET me', 'Your shop name, PIN codes and order counts — to test the key.' ),
 	);
 	foreach ( $rows as $r ) {

@@ -25,6 +25,7 @@ function d4u_ph_url( $tab = '' ) {
 /** Orders for this pharmacy (every pharmacy's for the dawa4u team). */
 function d4u_ph_query( $uid, $statuses, $args = array() ) {
 	$q  = array_merge( array(
+		'type'    => 'shop_order', // refunds are orders too in WooCommerce; leave them out
 		'status'  => (array) $statuses,
 		'limit'   => -1,
 		'orderby' => 'date',
@@ -127,6 +128,7 @@ function d4u_ph_icon( $name ) {
 		'requests' => '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 12v6M9 15h6"/>',
 		'rider'    => '<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17h4l3-6h4l1 6"/><path d="M13 7h3"/>',
 		'history'  => '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
+		'trend'    => '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
 		'pill'     => '<path d="m10.5 20.5-7-7a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/>',
 		'store'    => '<path d="M4 9h16l-1.5-5h-13z"/><path d="M5 9v11h14V9"/><path d="M10 20v-5h4v5"/>',
 		'logout'   => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
@@ -176,7 +178,7 @@ function d4u_ph_app() {
 	}
 
 	$tab   = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'home'; // phpcs:ignore
-	$tabs  = array( 'home', 'rx', 'pack', 'requests', 'rider', 'history', 'medicines', 'connect', 'profile' );
+	$tabs  = array( 'home', 'rx', 'pack', 'requests', 'rider', 'history', 'medicines', 'restock', 'connect', 'profile' );
 	$tab   = in_array( $tab, $tabs, true ) ? $tab : 'home';
 	$count = d4u_ph_counts( $uid );
 	$title = ( $count['action'] ? '(' . $count['action'] . ') ' : '' ) . 'Pharmacy · dawa4u';
@@ -189,6 +191,7 @@ function d4u_ph_app() {
 		'rider'     => array( 'With the rider', 'rider', $count['rider'] ),
 		'history'   => array( 'Order history', 'history', 0 ),
 		'medicines' => array( 'Medicine list', 'pill', 0 ),
+		'restock'   => array( 'Restock & expiry', 'trend', 0 ),
 		'connect'   => array( 'Billing software', 'plug', 0 ),
 		'profile'   => array( $boss ? 'Partners' : 'Shop details', 'store', 0 ),
 	);
@@ -290,6 +293,10 @@ function d4u_ph_view_home( $uid, $boss, $count ) {
 	$out                      .= '<div class="d4p-stat"><span>Orders today</span><strong>' . (int) $today_n . '</strong></div>';
 	$out                      .= '<div class="d4p-stat"><span>Medicine sales today</span><strong>' . esc_html( d4u_inr( $today_v ) ) . '</strong></div>';
 	$out                      .= '<div class="d4p-stat"><span>Delivered today</span><strong>' . (int) $done_today . '</strong></div>';
+	$pack_avg                  = $boss ? null : d4u_avg_pack_minutes( $uid, d4u_ph_day_start() );
+	if ( null !== $pack_avg ) {
+		$out .= '<div class="d4p-stat"><span>Average packing time today</span><strong>' . (int) $pack_avg . ' min</strong><em>aim for under ' . (int) d4u_opt( 'pack_min' ) . ' min</em></div>';
+	}
 	$out                      .= '<div class="d4p-stat"><span>' . esc_html( date_i18n( 'F' ) ) . ' so far</span><strong>' . esc_html( d4u_inr( $month_v ) ) . '</strong><em>' . (int) $month_n . ' orders</em></div>';
 	$out                      .= '</div>';
 

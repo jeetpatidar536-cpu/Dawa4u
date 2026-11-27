@@ -163,8 +163,10 @@ function d4u_availability( $product, $pin ) {
 	}
 	$list = d4u_rank_pharmacies( $pin, array( $product->get_sku() => 1 ) );
 	if ( ! $list ) {
+		d4u_note_missed_pin( $pin );
 		return array( 'state' => 'none', 'text' => sprintf( 'We don’t deliver to %s yet. We are adding pharmacies every week.', $pin ) );
 	}
+	$eta  = ' Usually delivered in about ' . d4u_eta_minutes( $pin ) . ' min' . ( d4u_raining() ? ' (a little longer — it’s raining)' : '' ) . '.';
 	$have = 0;
 	$open = 0;
 	$know = 0;
@@ -175,12 +177,12 @@ function d4u_availability( $product, $pin ) {
 	}
 	$n = count( $list );
 	if ( $have ) {
-		return array( 'state' => 'yes', 'text' => sprintf( 'In stock at %d of %d pharmac%s delivering to %s.', $have, $n, 1 === $n ? 'y' : 'ies', $pin ) );
+		return array( 'state' => 'yes', 'text' => sprintf( 'In stock at %d of %d pharmac%s delivering to %s.', $have, $n, 1 === $n ? 'y' : 'ies', $pin ) . $eta );
 	}
 	if ( $know === $n ) {
 		return array( 'state' => 'out', 'text' => sprintf( 'Out of stock at the %d pharmac%s near %s right now. You can still order — we ask every pharmacy near you, and tell you if none has it.', $n, 1 === $n ? 'y' : 'ies', $pin ) );
 	}
-	return array( 'state' => 'maybe', 'text' => sprintf( '%d pharmac%s deliver%s to %s. If the first one doesn’t have it, your order goes to the next one.', $n, 1 === $n ? 'y' : 'ies', 1 === $n ? 's' : '', $pin ) . ( $open ? '' : ' (All are closed right now.)' ) );
+	return array( 'state' => 'maybe', 'text' => sprintf( '%d pharmac%s deliver%s to %s. If the first one doesn’t have it, your order goes to the next one.', $n, 1 === $n ? 'y' : 'ies', 1 === $n ? 's' : '', $pin ) . ( $open ? $eta : ' (All are closed right now.)' ) );
 }
 
 add_action( 'wc_ajax_d4u_avail', function () {
@@ -330,6 +332,7 @@ add_action( 'woocommerce_after_checkout_validation', function ( $data, $errors )
 		if ( 6 !== strlen( $pin ) ) {
 			$errors->add( 'd4u_pin', 'Please enter your 6-digit PIN code.' );
 		} elseif ( d4u_pin_check_on() && ! d4u_find_pharmacy( $pin ) ) {
+			d4u_note_missed_pin( $pin );
 			/* translators: %s: PIN code */
 			$errors->add( 'd4u_pin', sprintf( 'Sorry, we don’t deliver to PIN %s yet. We are adding pharmacies every week.', esc_html( $pin ) ) );
 		}

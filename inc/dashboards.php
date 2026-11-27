@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 function d4u_orders_for( $field, $uid, $statuses, $limit = 60, $order = 'ASC' ) {
 	$args = array(
+		'type'    => 'shop_order',
 		'status'  => (array) $statuses,
 		'limit'   => $limit,
 		'orderby' => 'date',
@@ -59,13 +60,15 @@ function d4u_items_html( $order ) {
 	}
 	$ph    = (int) $order->get_meta( '_d4u_pharmacy' );
 	$stock = ( $ph && get_current_user_id() === $ph && function_exists( 'd4u_stock' ) ) ? d4u_stock( $ph ) : array(); // only the pharmacy sees its own stock
+	$held  = $stock && function_exists( 'd4u_order_held' ) ? d4u_order_held( $order ) : array();
 	$out   = '<ul class="d4u-items">';
 	foreach ( $items as $item ) {
 		$p    = $item->get_product();
 		$sku  = $p ? $p->get_sku() : '';
-		$st   = ( $sku && isset( $stock[ $sku ] ) ) ? (int) $stock[ $sku ]['qty'] : null;
+		$st   = ( $sku && isset( $stock[ $sku ] ) ) ? (int) $stock[ $sku ]['qty'] + ( isset( $held[ $sku ] ) ? $held[ $sku ] : 0 ) : null; // on the shelf, counting what is held for this order
 		$tag  = null === $st ? '' : ' <span class="d4u-stock' . ( $st < $item->get_quantity() ? ' is-low' : '' ) . '">' . ( $st ? 'stock ' . $st : 'out of stock' ) . '</span>';
-		$out .= '<li><span>' . esc_html( $item->get_name() ) . ( $p && d4u_needs_rx( $p ) ? ' <span class="d4u-rx-tag">Rx</span>' : '' ) . $tag . '</span><b>× ' . esc_html( $item->get_quantity() ) . '</b></li>';
+		$pick = ( $stock && $sku && $order->has_status( array( 'processing', 'd4u-rx' ) ) ) ? d4u_pick_note( $order, $sku ) : '';
+		$out .= '<li><span>' . esc_html( $item->get_name() ) . ( $p && d4u_needs_rx( $p ) ? ' <span class="d4u-rx-tag">Rx</span>' : '' ) . $tag . ( $pick ? '<span class="d4u-pick">' . esc_html( $pick ) . '</span>' : '' ) . '</span><b>× ' . esc_html( $item->get_quantity() ) . '</b></li>';
 	}
 	return $out . '</ul>';
 }
@@ -209,7 +212,8 @@ add_shortcode( 'dawa4u_pharmacy', function () {
 
 function d4u_ph_card( $o, $mode ) {
 	$out  = '<article class="d4u-card d4u-order">';
-	$out .= '<header><strong>#' . esc_html( $o->get_order_number() ) . '</strong><span class="d4u-small">' . esc_html( d4u_ago( $o ) ) . '</span></header>';
+	$wait = function_exists( 'd4u_pack_wait' ) ? d4u_pack_wait( $o ) : 0;
+	$out .= '<header><strong>#' . esc_html( $o->get_order_number() ) . '</strong>' . ( $o->has_status( 'processing' ) ? '<span class="d4u-wait' . ( $wait >= (int) d4u_opt( 'pack_min' ) ? ' is-late' : '' ) . '">Waiting ' . ( $wait < 1 ? 'under a minute' : (int) $wait . ' min' ) . '</span>' : '<span class="d4u-small">' . esc_html( d4u_ago( $o ) ) . '</span>' ) . '</header>';
 	$out .= '<p>' . esc_html( trim( $o->get_billing_first_name() . ' ' . $o->get_billing_last_name() ) ) . ' · <a href="tel:' . esc_attr( preg_replace( '/[^0-9+]/', '', $o->get_billing_phone() ) ) . '">' . esc_html( $o->get_billing_phone() ) . '</a><br><span class="d4u-small">' . esc_html( d4u_order_address( $o ) ) . '</span></p>';
 	if ( d4u_is_boss() ) {
 		$ph   = (int) $o->get_meta( '_d4u_pharmacy' );
@@ -454,6 +458,7 @@ function d4u_passed( $order ) {
  * @return int the new pharmacy, 0 if none was left
  */
 function d4u_ph_pass( $order, $uid, $reason = '' ) {
+	d4u_release_stock( $order );
 	$passed   = array_values( array_unique( array_merge( d4u_passed( $order ), array( (int) $uid ) ) ) );
 	$reason   = substr( trim( (string) $reason ), 0, 200 );
 	$list     = d4u_rank_pharmacies( d4u_order_pin( $order ), d4u_order_need( $order ), $passed );
@@ -462,6 +467,10 @@ function d4u_ph_pass( $order, $uid, $reason = '' ) {
 	$order->add_order_note( d4u_partner_name( $uid ) . ' doesn’t have it' . ( '' !== $reason ? ' (' . $reason . ')' : '' ) . '. ' . ( $next ? 'Sent to ' . d4u_partner_name( $next ) . ' — ' . d4u_stock_words( $list[0]['stock'] ) . '.' : 'No other pharmacy left for PIN ' . d4u_order_pin( $order ) . '.' ) );
 	if ( $next ) {
 		$order->update_meta_data( '_d4u_pharmacy', $next );
+		if ( d4u_lock( 'route' ) ) {
+			d4u_reserve_stock( $order, $next );
+			d4u_unlock( 'route' );
+		}
 		$order->save();
 		d4u_mail_pharmacy_once( $order );
 		if ( function_exists( 'd4u_hook_send' ) && get_user_meta( $next, 'd4u_hook_url', true ) ) {
@@ -579,7 +588,7 @@ add_shortcode( 'dawa4u_rider', function () {
 		}
 		if ( $online ) {
 			$pins  = d4u_pins( $uid );
-			$ready = array_filter( wc_get_orders( array( 'status' => array( 'd4u-ready' ), 'limit' => 60, 'orderby' => 'date', 'order' => 'ASC' ) ), function ( $o ) use ( $pins, $boss ) {
+			$ready = array_filter( wc_get_orders( array( 'type' => 'shop_order', 'status' => array( 'd4u-ready' ), 'limit' => 60, 'orderby' => 'date', 'order' => 'ASC' ) ), function ( $o ) use ( $pins, $boss ) {
 				return ! $o->get_meta( '_d4u_rider' ) && ( $boss || in_array( d4u_order_pin( $o ), $pins, true ) );
 			} );
 			$out .= '<h3 class="d4u-h">Ready for pickup near you</h3>';

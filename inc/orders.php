@@ -266,7 +266,12 @@ add_action( 'woocommerce_process_shop_order_meta', function ( $order_id ) {
 	}
 	$ph = isset( $_POST['d4u_pharmacy'] ) ? absint( $_POST['d4u_pharmacy'] ) : 0;
 	if ( $ph !== (int) $order->get_meta( '_d4u_pharmacy' ) ) {
+		d4u_release_stock( $order );
 		$order->update_meta_data( '_d4u_pharmacy', $ph );
+		if ( $ph && $order->has_status( array( 'pending', 'on-hold', 'd4u-rx', 'processing', 'd4u-request' ) ) && d4u_lock( 'route' ) ) {
+			d4u_reserve_stock( $order, $ph );
+			d4u_unlock( 'route' );
+		}
 		$order->add_order_note( $ph ? 'Pharmacy set to ' . d4u_partner_name( $ph ) . '.' : 'Pharmacy removed.' );
 	}
 	$rd = isset( $_POST['d4u_rider'] ) ? absint( $_POST['d4u_rider'] ) : 0;
@@ -382,6 +387,10 @@ add_action( 'woocommerce_order_details_before_order_table', function ( $order ) 
 	}
 	if ( $msg ) {
 		echo '<p class="d4u-track__msg">' . esc_html( $msg ) . '</p>';
+	}
+	$eta = function_exists( 'd4u_eta_line' ) ? d4u_eta_line( $order ) : '';
+	if ( $eta ) {
+		echo '<p class="d4u-eta">' . esc_html( $eta ) . '</p>';
 	}
 	if ( $pay ) {
 		echo '<p><a class="button d4u-btn-gold" href="' . esc_url( $order->get_checkout_payment_url() ) . '">Pay ' . wp_kses_post( wc_price( $order->get_total() ) ) . '</a></p>';

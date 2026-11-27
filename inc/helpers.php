@@ -16,6 +16,11 @@ function d4u_opt( $key ) {
 		'pass_days'    => 30,   // how long one dawaPass lasts
 		'rider_pay'    => 30,   // ₹ paid to the rider per delivery
 		'pin_check'    => 'auto', // auto = only once at least one pharmacy is approved
+		'target_min'   => 30,     // delivery promise per zone, minutes from paid/approved to delivered
+		'pack_min'     => 5,      // an order waiting longer than this to be packed turns red
+		'rain_buffer'  => 10,     // minutes added to delivery times while it rains (0 = don't check the weather)
+		'city_lat'     => 22.7196, // Indore — where to check the weather
+		'city_lng'     => 75.8577,
 	);
 	$o = get_option( 'd4u_settings', array() );
 	if ( is_array( $o ) && isset( $o[ $key ] ) && '' !== $o[ $key ] ) {
@@ -342,13 +347,26 @@ function d4u_prepare_order( $order ) {
 		$order->update_meta_data( '_d4u_code', d4u_new_code() );
 	}
 	if ( ! $order->get_meta( '_d4u_pharmacy' ) && ! d4u_order_only_pass( $order ) ) {
-		$need = d4u_order_need( $order );
-		$list = d4u_rank_pharmacies( d4u_order_pin( $order ), $need );
+		$need   = d4u_order_need( $order );
+		$locked = function_exists( 'd4u_lock' ) && $need ? d4u_lock( 'route' ) : false; // one checkout at a time decides who gets the last strip
+		if ( $locked ) {
+			d4u_fresh_meta( d4u_pharmacies_for_pin( d4u_order_pin( $order ) ) );
+		}
+		$list   = d4u_rank_pharmacies( d4u_order_pin( $order ), $need );
 		if ( $list ) {
 			$ph = (int) $list[0]['id'];
 			$order->update_meta_data( '_d4u_pharmacy', $ph );
+			if ( function_exists( 'd4u_reserve_stock' ) ) {
+				d4u_reserve_stock( $order, $ph );
+			}
 			$order->add_order_note( sprintf( 'Checked %d pharmac%s for PIN %s. Sent to %s%s.', count( $list ), 1 === count( $list ) ? 'y' : 'ies', d4u_order_pin( $order ), d4u_partner_name( $ph ), $need ? ' — ' . d4u_stock_words( $list[0]['stock'] ) : '' ) );
+			if ( $locked ) {
+				d4u_unlock( 'route' );
+			}
 		} else {
+			if ( $locked ) {
+				d4u_unlock( 'route' );
+			}
 			$order->add_order_note( 'No partner pharmacy covers PIN ' . d4u_order_pin( $order ) . ' yet — choose one in the dawa4u box on this order.' );
 		}
 	}

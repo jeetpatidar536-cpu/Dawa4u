@@ -70,6 +70,9 @@ function d4u_admin_page() {
 		'pass_off'     => array( 'dawaPass discount (%)', 'Off the medicines. The dawaPass price is the price of the “dawaPass — 30 days” product.' ),
 		'pass_days'    => array( 'dawaPass length (days)', '' ),
 		'rider_pay'    => array( 'Rider pay per delivery (₹)', 'Shown to riders and counted in their earnings.' ),
+		'target_min'   => array( 'Delivery promise (minutes)', 'From paid / prescription approved to delivered. Used for delivery times and the zones report.' ),
+		'pack_min'     => array( 'Packing target (minutes)', 'Orders waiting longer turn red in the pharmacy dashboard.' ),
+		'rain_buffer'  => array( 'Extra minutes when it rains', 'Added to delivery times while it rains in your city. 0 = don’t check the weather.' ),
 	);
 	foreach ( $rows as $k => $r ) {
 		echo '<tr><th><label for="d4u-' . esc_attr( $k ) . '">' . esc_html( $r[0] ) . '</label></th><td><input type="number" min="0" step="1" id="d4u-' . esc_attr( $k ) . '" name="d4u[' . esc_attr( $k ) . ']" value="' . esc_attr( d4u_opt( $k ) ) . '" class="small-text"> <span class="description">' . esc_html( $r[1] ) . '</span></td></tr>';
@@ -79,7 +82,8 @@ function d4u_admin_page() {
 	foreach ( array( 'auto' => 'Yes, once at least one pharmacy is approved', 'yes' => 'Yes, always', 'no' => 'No — I will choose the pharmacy myself' ) as $k => $l ) {
 		echo '<option value="' . esc_attr( $k ) . '"' . selected( $pc, $k, false ) . '>' . esc_html( $l ) . '</option>';
 	}
-	echo '</select></td></tr></table>';
+	echo '</select></td></tr>';
+	echo '<tr><th>City for the weather</th><td><input name="d4u[city_lat]" value="' . esc_attr( d4u_opt( 'city_lat' ) ) . '" class="small-text" aria-label="Latitude"> , <input name="d4u[city_lng]" value="' . esc_attr( d4u_opt( 'city_lng' ) ) . '" class="small-text" aria-label="Longitude"> <span class="description">Latitude, longitude. Default: Indore.</span></td></tr></table>';
 	submit_button( 'Save charges' );
 	echo '</form></div>';
 }
@@ -115,7 +119,7 @@ add_action( 'admin_post_d4u_settings', function () {
 	}
 	$in  = isset( $_POST['d4u'] ) ? (array) wp_unslash( $_POST['d4u'] ) : array(); // phpcs:ignore
 	$out = array();
-	foreach ( array( 'delivery_fee', 'handling_fee', 'pass_off', 'pass_days', 'rider_pay' ) as $k ) {
+	foreach ( array( 'delivery_fee', 'handling_fee', 'pass_off', 'pass_days', 'rider_pay', 'target_min', 'pack_min', 'rain_buffer' ) as $k ) {
 		if ( isset( $in[ $k ] ) && '' !== $in[ $k ] ) {
 			$out[ $k ] = max( 0, (int) $in[ $k ] );
 		}
@@ -126,6 +130,13 @@ add_action( 'admin_post_d4u_settings', function () {
 	if ( isset( $out['pass_days'] ) ) {
 		$out['pass_days'] = max( 1, $out['pass_days'] );
 	}
+	foreach ( array( 'city_lat' => 90, 'city_lng' => 180 ) as $k => $lim ) {
+		if ( isset( $in[ $k ] ) && is_numeric( $in[ $k ] ) && abs( (float) $in[ $k ] ) <= $lim ) {
+			$out[ $k ] = round( (float) $in[ $k ], 4 );
+		}
+	}
+	delete_transient( 'd4u_rain' );
+	delete_transient( 'd4u_pinstats_30' );
 	$out['pin_check'] = isset( $in['pin_check'] ) && in_array( $in['pin_check'], array( 'auto', 'yes', 'no' ), true ) ? $in['pin_check'] : 'auto';
 	update_option( 'd4u_settings', $out );
 	wp_safe_redirect( admin_url( 'admin.php?page=d4u-partners&done=1' ) );
