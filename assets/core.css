@@ -159,3 +159,27 @@
 .d4u-shelf__price { font-size: 14px; color: var(--mute, #4b5563); }
 .d4u-shelf .d4u-shelf__add { text-align: center; min-height: 40px; }
 .d4u-eta { margin: 4px 0 10px; font-weight: 700; font-size: 16px; color: var(--em-text, #166534); }
+
+/* ---------- inside the dawa4u apps (see inc/app-mode.php) ---------- */
+.d4u-tabbar { display: none; }
+html.d4u-app .d4-footer,
+html.d4u-app .d4-nav,
+html.d4u-app .d4-menu-btn,
+html.d4u-app .d4-cta { display: none !important; }
+html.d4u-app--customer body { padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+html.d4u-app--customer .d4u-tabbar {
+	display: grid; grid-template-columns: repeat(5, 1fr);
+	position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+	padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+	background: var(--header-bg, #0B1708); backdrop-filter: blur(10px);
+	border-top: 1px solid var(--line, rgba(255,255,255,.12));
+}
+.d4u-tabbar a { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px; min-height: 48px; justify-content: center; text-decoration: none; color: var(--mute, #9CA3AF); font: 600 11.5px/1.1 var(--sans, system-ui, sans-serif); border-radius: 12px; }
+.d4u-tabbar a.is-on { color: var(--em-text, #86EFAC); }
+.d4u-tabbar a.is-on svg { stroke-width: 2.4; }
+.d4u-tabbar a:active { background: var(--card2, rgba(255,255,255,.06)); }
+html.d4u-app--rider .d4-cart { display: none !important; }
+html.d4u-app .d4-main { padding-top: 8px; }
+@media (min-width: 900px) { html.d4u-app--customer .d4u-tabbar { max-width: 640px; margin: 0 auto; border-radius: 18px 18px 0 0; } }
+/* "View" buttons in My account → Orders were dark text on dark green */
+.woocommerce-orders-table .woocommerce-button, .woocommerce-orders-table .button { color: #fff !important; }
