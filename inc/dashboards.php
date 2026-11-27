@@ -463,6 +463,19 @@ function d4u_ph_pass( $order, $uid, $reason = '' ) {
 	$reason   = substr( trim( (string) $reason ), 0, 200 );
 	$list     = d4u_rank_pharmacies( d4u_order_pin( $order ), d4u_order_need( $order ), $passed );
 	$next     = $list ? (int) $list[0]['id'] : 0;
+	if ( function_exists( 'd4u_svc_on' ) && d4u_svc_on() ) {
+		d4u_svc_call( 'POST', '/v1/stock/release', array( 'order' => (string) $order->get_id() ), 0.8 );
+		$pick = $list ? d4u_svc_hold( $order, $list, d4u_order_need( $order ) ) : null;
+		if ( $pick ) {
+			foreach ( $list as $i => $row ) {
+				if ( (int) $row['id'] === $pick ) {
+					$list = array( $row );
+					$next = $pick;
+					break;
+				}
+			}
+		}
+	}
 	$order->update_meta_data( '_d4u_passed', $passed );
 	$order->add_order_note( d4u_partner_name( $uid ) . ' doesn’t have it' . ( '' !== $reason ? ' (' . $reason . ')' : '' ) . '. ' . ( $next ? 'Sent to ' . d4u_partner_name( $next ) . ' — ' . d4u_stock_words( $list[0]['stock'] ) . '.' : 'No other pharmacy left for PIN ' . d4u_order_pin( $order ) . '.' ) );
 	if ( $next ) {

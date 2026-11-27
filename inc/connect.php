@@ -30,6 +30,7 @@ function d4u_stock_save( $uid, $stock, $source ) {
 	update_user_meta( $uid, 'd4u_stock', $stock );
 	update_user_meta( $uid, 'd4u_stock_at', time() );
 	update_user_meta( $uid, 'd4u_stock_src', $source );
+	do_action( 'd4u_stock_saved', $uid, $stock, $source );
 }
 
 /** Medicines customers can order: [ sku => WC_Product ] (no dawaPass). */

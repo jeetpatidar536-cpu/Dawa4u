@@ -85,7 +85,11 @@ function d4u_admin_page() {
 	echo '</select></td></tr>';
 	echo '<tr><th>City for the weather</th><td><input name="d4u[city_lat]" value="' . esc_attr( d4u_opt( 'city_lat' ) ) . '" class="small-text" aria-label="Latitude"> , <input name="d4u[city_lng]" value="' . esc_attr( d4u_opt( 'city_lng' ) ) . '" class="small-text" aria-label="Longitude"> <span class="description">Latitude, longitude. Default: Indore.</span></td></tr></table>';
 	submit_button( 'Save charges' );
-	echo '</form></div>';
+	echo '</form>';
+	if ( function_exists( 'd4u_svc_settings_html' ) ) {
+		echo d4u_svc_settings_html(); // phpcs:ignore -- built with esc_* inside
+	}
+	echo '</div>';
 }
 
 add_action( 'admin_post_d4u_partner', function () {

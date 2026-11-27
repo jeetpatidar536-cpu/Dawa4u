@@ -392,7 +392,13 @@ function d4u_raining() {
 }
 
 /** About how long a delivery to this PIN takes, in minutes (rain buffer included). */
-function d4u_eta_minutes( $pin ) {
+function d4u_eta_minutes( $pin, $order = null ) {
+	if ( function_exists( 'd4u_svc_on' ) && d4u_svc_on() ) { // learned per few streets by eta-svc
+		$e = d4u_svc_eta( $pin, $order ? $order->get_meta( '_d4u_lat' ) : null, $order ? $order->get_meta( '_d4u_lng' ) : null );
+		if ( $e ) {
+			return (int) $e['minutes'];
+		}
+	}
 	$st   = d4u_pin_stats();
 	$base = ( isset( $st[ $pin ] ) && $st[ $pin ]['n'] >= 5 ) ? (int) $st[ $pin ]['total'] : d4u_target_minutes();
 	return $base + ( d4u_raining() ? (int) d4u_opt( 'rain_buffer' ) : 0 );
@@ -415,7 +421,7 @@ function d4u_eta_line( $order ) {
 	if ( $order->has_status( array( 'processing', 'd4u-ready' ) ) ) {
 		$from = (int) $order->get_meta( '_d4u_t_processing' );
 		$from = $from ? $from : ( $order->get_date_created() ? $order->get_date_created()->getTimestamp() : time() );
-		$by   = $from + d4u_eta_minutes( $pin ) * 60;
+		$by   = $from + d4u_eta_minutes( $pin, $order ) * 60;
 		if ( $by > time() + 120 ) {
 			return 'Expected by ' . wp_date( get_option( 'time_format', 'g:i a' ), $by ) . '.' . $note;
 		}
@@ -493,6 +499,7 @@ function d4u_forecast_week( $w, $m ) {
 
 function d4u_restock_rows( $uid ) {
 	$demand = d4u_area_demand( d4u_pins( $uid ) );
+	$model  = ( function_exists( 'd4u_svc_on' ) && d4u_svc_on() ) ? d4u_svc_forecast( d4u_pins( $uid ) ) : null; // gradient-boosting forecast
 	$stock  = d4u_stock( $uid );
 	$fresh  = d4u_stock_fresh( $uid );
 	$prods  = d4u_sellable_products();
@@ -501,7 +508,7 @@ function d4u_restock_rows( $uid ) {
 		if ( ! isset( $prods[ $sku ] ) ) {
 			continue;
 		}
-		$f      = d4u_forecast_week( $d['w'], $d['m'] );
+		$f      = ( $model && isset( $model['medicines'][ $sku ]['next7'] ) ) ? (int) $model['medicines'][ $sku ]['next7'] : d4u_forecast_week( $d['w'], $d['m'] );
 		$have   = ( $fresh && isset( $stock[ $sku ] ) ) ? (int) $stock[ $sku ]['qty'] : null;
 		$need   = null === $have ? null : max( 0, (int) ceil( $f * 1.25 ) - $have );
 		$rows[] = array(

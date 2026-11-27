@@ -354,7 +354,17 @@ function d4u_prepare_order( $order ) {
 		}
 		$list   = d4u_rank_pharmacies( d4u_order_pin( $order ), $need );
 		if ( $list ) {
-			$ph = (int) $list[0]['id'];
+			$ph   = (int) $list[0]['id'];
+			$pick = function_exists( 'd4u_svc_hold' ) ? d4u_svc_hold( $order, $list, $need ) : null; // Redis: atomic hold at the best pharmacy that has it all
+			if ( $pick ) {
+				foreach ( $list as $i => $row ) {
+					if ( (int) $row['id'] === $pick ) {
+						$list = array_merge( array( $row ), array_diff_key( $list, array( $i => 1 ) ) );
+						$ph   = $pick;
+						break;
+					}
+				}
+			}
 			$order->update_meta_data( '_d4u_pharmacy', $ph );
 			if ( function_exists( 'd4u_reserve_stock' ) ) {
 				d4u_reserve_stock( $order, $ph );

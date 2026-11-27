@@ -267,6 +267,12 @@ add_action( 'woocommerce_process_shop_order_meta', function ( $order_id ) {
 	$ph = isset( $_POST['d4u_pharmacy'] ) ? absint( $_POST['d4u_pharmacy'] ) : 0;
 	if ( $ph !== (int) $order->get_meta( '_d4u_pharmacy' ) ) {
 		d4u_release_stock( $order );
+		if ( function_exists( 'd4u_svc_on' ) && d4u_svc_on() ) {
+			d4u_svc_call( 'POST', '/v1/stock/release', array( 'order' => (string) $order->get_id() ), 0.8 );
+			if ( $ph ) {
+				d4u_svc_hold( $order, array( array( 'id' => $ph ) ), d4u_order_need( $order ) );
+			}
+		}
 		$order->update_meta_data( '_d4u_pharmacy', $ph );
 		if ( $ph && $order->has_status( array( 'pending', 'on-hold', 'd4u-rx', 'processing', 'd4u-request' ) ) && d4u_lock( 'route' ) ) {
 			d4u_reserve_stock( $order, $ph );
