@@ -1,0 +1,91 @@
+# dawa4u services on one server (Hostinger KVM 2: 2 vCPU, 8 GB).
+#   caddy    → HTTPS for api.dawa4u.in (certificates are automatic)
+#   gateway  → the only public service; checks every request
+#   stock    → Redis stock holds (the last strip goes to exactly one order)
+#   eta      → delivery times per few streets (S2 cells), live rider GPS, "Arriving soon"
+#   forecast → next week's demand (gradient boosting)
+#   kafka    → event stream: orders, stock, rider.location (KRaft, no ZooKeeper)
+#   redis    → in-memory store for holds, rider positions, learned times
+x-svc: &svc
+  build: ./services
+  image: dawa4u-services:latest
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    REDIS_URL: redis://redis:6379/0
+    BUS: kafka
+    KAFKA_BROKERS: kafka:9092
+    STOCK_URL: http://stock:8000
+    ETA_URL: http://eta:8000
+    FORECAST_URL: http://forecast:8000
+    DATA_DIR: /data
+  depends_on:
+    redis: { condition: service_healthy }
+    kafka: { condition: service_healthy }
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
+    volumes: [redis-data:/data]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 20 }
+
+  kafka:
+    image: apache/kafka:3.9.1
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 720
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx768m"
+    volumes: [kafka-data:/var/lib/kafka/data]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  gateway:
+    <<: *svc
+    command: ["uvicorn", "dawa4u_svc.gateway:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--proxy-headers", "--forwarded-allow-ips", "*"]
+
+  stock:
+    <<: *svc
+    command: ["uvicorn", "dawa4u_svc.stock:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  eta:
+    <<: *svc
+    command: ["uvicorn", "dawa4u_svc.eta:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  forecast:
+    <<: *svc
+    command: ["uvicorn", "dawa4u_svc.forecast:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes: [forecast-data:/data]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-api.dawa4u.in}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [gateway]
+
+volumes:
+  redis-data:
+  kafka-data:
+  forecast-data:
+  caddy-data:

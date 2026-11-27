@@ -1,0 +1,52 @@
+name: services
+on:
+  push:
+    branches: [stack]
+    paths: ["services/**", "tests/**", ".github/workflows/services.yml"]
+permissions:
+  contents: read
+  packages: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bus: [redis, kafka]
+    services:
+      kafka:
+        image: apache/kafka:3.9.1
+        ports: ["9092:9092"]
+        env:
+          KAFKA_NODE_ID: 1
+          KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_NUM_PARTITIONS: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: sudo apt-get update && sudo apt-get install -y redis-server
+      - run: pip install -r services/requirements.txt pytest
+      - run: pytest -q tests/test_stack.py
+        env:
+          TEST_BUS: ${{ matrix.bus }}
+          KAFKA_BROKERS: localhost:9092
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: docker/build-push-action@v6
+        with:
+          context: services
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/dawa4u-services:latest,ghcr.io/${{ github.repository_owner }}/dawa4u-services:${{ github.sha }}

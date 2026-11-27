@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dawa4u
+---
+# Fill in and apply once:  kubectl -n dawa4u create secret generic d4u-env --from-env-file=../.env
+# (the same .env as docker compose; never commit it)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d4u-config
+  namespace: dawa4u
+data:
+  REDIS_URL: redis://redis:6379/0
+  BUS: kafka
+  KAFKA_BROKERS: kafka:9092
+  STOCK_URL: http://stock:8000
+  ETA_URL: http://eta:8000
+  FORECAST_URL: http://forecast:8000
+  DATA_DIR: /data

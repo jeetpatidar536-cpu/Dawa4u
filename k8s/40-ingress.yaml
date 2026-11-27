@@ -1,0 +1,17 @@
+# k3s ships Traefik. HTTPS via cert-manager (install once; see README).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway
+  namespace: dawa4u
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  tls: [{ hosts: [api.dawa4u.in], secretName: api-dawa4u-tls }]
+  rules:
+    - host: api.dawa4u.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: gateway, port: { number: 8000 } } }

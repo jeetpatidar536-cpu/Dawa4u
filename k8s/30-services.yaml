@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: gateway, namespace: dawa4u }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: gateway } }
+  template:
+    metadata: { labels: { app: gateway } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      containers:
+        - name: gateway
+          image: ghcr.io/jeetpatidar536-cpu/dawa4u-services:latest
+          args: ["uvicorn", "dawa4u_svc.gateway:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+          ports: [{ containerPort: 8000 }]
+          envFrom: [{ configMapRef: { name: d4u-config } }, { secretRef: { name: d4u-env } }]
+          readinessProbe: { httpGet: { path: /health, port: 8000 }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health, port: 8000 }, periodSeconds: 30, failureThreshold: 4 }
+          resources: { requests: { cpu: 100m, memory: 192Mi }, limits: { memory: 512Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: gateway, namespace: dawa4u }
+spec: { selector: { app: gateway }, ports: [{ port: 8000 }] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: stock, namespace: dawa4u }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: stock } }
+  template:
+    metadata: { labels: { app: stock } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      containers:
+        - name: stock
+          image: ghcr.io/jeetpatidar536-cpu/dawa4u-services:latest
+          args: ["uvicorn", "dawa4u_svc.stock:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports: [{ containerPort: 8000 }]
+          envFrom: [{ configMapRef: { name: d4u-config } }, { secretRef: { name: d4u-env } }]
+          readinessProbe: { httpGet: { path: /health, port: 8000 }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health, port: 8000 }, periodSeconds: 30, failureThreshold: 4 }
+          resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: stock, namespace: dawa4u }
+spec: { selector: { app: stock }, ports: [{ port: 8000 }] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: eta, namespace: dawa4u }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: eta } }
+  template:
+    metadata: { labels: { app: eta } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      containers:
+        - name: eta
+          image: ghcr.io/jeetpatidar536-cpu/dawa4u-services:latest
+          args: ["uvicorn", "dawa4u_svc.eta:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports: [{ containerPort: 8000 }]
+          envFrom: [{ configMapRef: { name: d4u-config } }, { secretRef: { name: d4u-env } }]
+          readinessProbe: { httpGet: { path: /health, port: 8000 }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health, port: 8000 }, periodSeconds: 30, failureThreshold: 4 }
+          resources: { requests: { cpu: 50m, memory: 160Mi }, limits: { memory: 384Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: eta, namespace: dawa4u }
+spec: { selector: { app: eta }, ports: [{ port: 8000 }] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: forecast, namespace: dawa4u }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: forecast } }
+  template:
+    metadata: { labels: { app: forecast } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      containers:
+        - name: forecast
+          image: ghcr.io/jeetpatidar536-cpu/dawa4u-services:latest
+          args: ["uvicorn", "dawa4u_svc.forecast:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports: [{ containerPort: 8000 }]
+          envFrom: [{ configMapRef: { name: d4u-config } }, { secretRef: { name: d4u-env } }]
+          readinessProbe: { httpGet: { path: /health, port: 8000 }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health, port: 8000 }, periodSeconds: 30, failureThreshold: 4 }
+          resources: { requests: { cpu: 100m, memory: 384Mi }, limits: { memory: 1Gi } }
+          volumeMounts: [{ name: data, mountPath: /data }]
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: forecast-data }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: forecast, namespace: dawa4u }
+spec: { selector: { app: forecast }, ports: [{ port: 8000 }] }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: forecast-data, namespace: dawa4u }
+spec: { accessModes: ["ReadWriteOnce"], resources: { requests: { storage: 1Gi } } }
+---
+# More gateways when traffic grows (needs metrics-server, which k3s includes).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: gateway, namespace: dawa4u }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: gateway }
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }
